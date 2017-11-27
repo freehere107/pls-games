@@ -2,13 +2,15 @@ pragma solidity ^0.4.17;
 
 import "ds-test/test.sol";
 
-import "./PlsGames.sol";
+import "./BetGame.sol";
 
-contract PlsGamesTest is DSTest {
-    PlsGames games;
+contract BetGameTest is DSTest {
+    BetGame betGame;
+    PLS pls;
 
     function setUp() public {
-        games = new PlsGames();
+        pls = new PLS();
+        betGame = new BetGame(address(pls));
     }
 
     function testFail_basic_sanity() public {
