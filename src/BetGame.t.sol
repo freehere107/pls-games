@@ -11,6 +11,8 @@ contract BetGameTest is DSTest {
     function setUp() public {
         pls = new PLS();
         betGame = new BetGame(address(pls));
+
+        pls.changeController(0x0);
     }
 
     function testFail_basic_sanity() public {
@@ -18,6 +20,69 @@ contract BetGameTest is DSTest {
     }
 
     function test_basic_sanity() public {
-        assertTrue(true);
+        pls.mint(this, 10000);
+
+        // with secret 0, false, 13
+        // console.log(abi.methodID('startRoundWithFirstBet', [ 'uint256', 'uint256', 'uint256', 'bytes32' ]).toString('hex') + abi.rawEncode([ 'uint256', 'uint256', 'uint256', 'bytes32' ], [ "2", "100", "100", "0x6b8f6131d0ac11af070d31278c98837b9929100022656f5e5c357fbbe1692591" ]).toString('hex'));
+        pls.transfer(address(betGame), 100, hexStrToBytes("0x21067b3f0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000006400000000000000000000000000000000000000000000000000000000000000646b8f6131d0ac11af070d31278c98837b9929100022656f5e5c357fbbe1692591"));
+
+        // assertEq(betGame.fallbackFrom(), address(this));
+        // assertEq(betGame.fallbackValue(), 100);
+
+        assertEq(betGame.roundCount(), 2);
     }
+
+    function hexStrToBytes(string hex_str) constant returns (bytes)
+    {
+        //Check hex string is valid
+        if (bytes(hex_str)[0]!='0' ||
+            bytes(hex_str)[1]!='x' ||
+            bytes(hex_str).length%2!=0 ||
+            bytes(hex_str).length<4)
+            {
+                throw;
+            }
+
+        bytes memory bytes_array = new bytes((bytes(hex_str).length-2)/2);
+
+        for (uint i=2;i<bytes(hex_str).length;i+=2)
+        {
+            uint tetrad1=16;
+            uint tetrad2=16;
+
+            //left digit
+            if (uint(bytes(hex_str)[i])>=48 &&uint(bytes(hex_str)[i])<=57)
+                tetrad1=uint(bytes(hex_str)[i])-48;
+
+            //right digit
+            if (uint(bytes(hex_str)[i+1])>=48 &&uint(bytes(hex_str)[i+1])<=57)
+                tetrad2=uint(bytes(hex_str)[i+1])-48;
+
+            //left A->F
+            if (uint(bytes(hex_str)[i])>=65 &&uint(bytes(hex_str)[i])<=70)
+                tetrad1=uint(bytes(hex_str)[i])-65+10;
+
+            //right A->F
+            if (uint(bytes(hex_str)[i+1])>=65 &&uint(bytes(hex_str)[i+1])<=70)
+                tetrad2=uint(bytes(hex_str)[i+1])-65+10;
+
+            //left a->f
+            if (uint(bytes(hex_str)[i])>=97 &&uint(bytes(hex_str)[i])<=102)
+                tetrad1=uint(bytes(hex_str)[i])-97+10;
+
+            //right a->f
+            if (uint(bytes(hex_str)[i+1])>=97 &&uint(bytes(hex_str)[i+1])<=102)
+                tetrad2=uint(bytes(hex_str)[i+1])-97+10;
+
+            //Check all symbols are allowed
+            if (tetrad1==16 || tetrad2==16)
+                throw;
+
+            bytes_array[i/2-1]=byte(16*tetrad1+tetrad2);
+        }
+
+        return bytes_array;
+    }
+
+
 }
