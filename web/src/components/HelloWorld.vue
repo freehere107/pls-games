@@ -1,50 +1,88 @@
+<style scoped>
+  .layout {
+    border: 1px solid #d7dde4;
+    background: #f5f7f9;
+  }
+
+  .layout-assistant {
+    width: 100%;
+    margin: 0 auto;
+    height: inherit;
+  }
+
+  .layout-content {
+    min-height: 50px;
+    margin: 15px;
+    overflow: hidden;
+    background: #fff;
+    border-radius: 4px;
+  }
+
+  .layout-content-main {
+    padding: 10px;
+  }
+
+</style>
 <template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-    <h2>Essential Links</h2>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank">Twitter</a></li>
-      <br>
-      <li><a href="http://vuejs-templates.github.io/webpack/" target="_blank">Docs for This Template</a></li>
-    </ul>
-    <h2>Ecosystem</h2>
-    <ul>
-      <li><a href="http://router.vuejs.org/" target="_blank">vue-router</a></li>
-      <li><a href="http://vuex.vuejs.org/" target="_blank">vuex</a></li>
-      <li><a href="http://vue-loader.vuejs.org/" target="_blank">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank">awesome-vue</a></li>
-    </ul>
+  <div class="layout">
+    <Menu mode="horizontal" active-name="1">
+      <div class="layout-assistant">
+        <MenuItem name="1">Round 1</MenuItem>
+        <MenuItem name="2">Round 2</MenuItem>
+        <MenuItem name="3">Round 3</MenuItem>
+        <MenuItem name="4">Round 4</MenuItem>
+        <MenuItem name="5">Round 5</MenuItem>
+      </div>
+    </Menu>
+    <div class="layout-content">
+      <div class="layout-content-main">
+        <div class="demo-avatar-badge">
+          <Badge count="1">
+            <Avatar shape="square" icon="person"/>
+          </Badge>
+          player1
+          <Slider v-model="value1"></Slider>
+        </div>
+      </div>
+    </div>
+    <div class="layout-content">
+      <div class="layout-content-main">
+        <Badge count="2">
+          <Avatar shape="square" icon="person"/>
+        </Badge>
+        player2
+        <Slider v-model="value2"></Slider>
+      </div>
+    </div>
+    <div class="layout-content">
+      <div class="layout-content-main">
+        <Badge count="3">
+          <Avatar shape="square" icon="person"/>
+        </Badge>
+        player3
+        <Slider v-model="value3"></Slider>
+      </div>
+    </div>
+    <div class="layout-content">
+      <div class="layout-content-main">
+        <Badge count="4">
+          <Avatar shape="square" icon="person"/>
+        </Badge>
+        player4
+        <Slider v-model="value4"></Slider>
+      </div>
+    </div>
   </div>
 </template>
-
 <script>
-export default {
-  name: 'HelloWorld',
-  data () {
-    return {
-      msg: 'Welcome to Your Vue.js App'
+  export default {
+    data () {
+      return {
+        value1: 0,
+        value2: 0,
+        value3: 0,
+        value4: 0
+      }
     }
   }
-}
 </script>
-
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-h1, h2 {
-  font-weight: normal;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
-}
-</style>
