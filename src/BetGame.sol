@@ -75,7 +75,7 @@ contract BetGame is DSStop {
         this.call(_data);
     }
     
-    function startRoundWithFirstBet(uint256 _betCount, uint256 _maxBetBlockCount, uint256 _maxRevealBlockCount, bytes32 _secretHashForFirstBet) public returns (uint roundId)
+    function startRoundWithFirstBet(uint _betCount, uint _maxBetBlockCount, uint _maxRevealBlockCount, bytes32 _secretHashForFirstBet) public returns (uint roundId)
     {
         require(msg.sender == address(this));
 
@@ -93,14 +93,14 @@ contract BetGame is DSStop {
     function betWithRound(uint _roundId, bytes32 _secretHashForBet) public
     {
         require(msg.sender == address(this));
-        
+
         require(fallbackValue > 0);
         require(rounds[_roundId].finalizedBlock == 0);
         
         require(rounds[_roundId].betIds.length < rounds[_roundId].betCount);
 
 
-        for (uint i=0; i<rounds[_roundId].betIds.length; i++) {
+        for (uint i=0; i < rounds[_roundId].betIds.length; i++) {
             if (bets[rounds[_roundId].betIds[i]].player == fallbackFrom)
                 throw;
         }
@@ -255,7 +255,7 @@ contract BetGame is DSStop {
         RoundSubmission(roundId);
     }
     
-    function betRevealed(uint roundId) constant internal returns(bool)
+    function betRevealed(uint roundId) constant public returns(bool)
     {
         bool betsRevealed = true;
         uint i = 0;
