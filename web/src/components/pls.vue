@@ -42,6 +42,7 @@
           </Badge>
           player1
           <Slider v-model="value1"></Slider>
+          <Button type="primary" shape="circle" @click="bet">To bet</Button>
         </div>
       </div>
     </div>
@@ -75,14 +76,51 @@
   </div>
 </template>
 <script>
+  import {Pls} from '../js/pls'
   export default {
     data () {
       return {
+        contractAddr: '0x2be23239A93D8Ef827E9a80E2B1a6eef271F9932',
+        tokenAddr: '0x967ba827EBD984b99e5df7c4098d43Bb21bED34f',
+        account: '',
         value1: 0,
         value2: 0,
         value3: 0,
         value4: 0
       }
+    },
+    methods: {
+      init: function () {
+        this.axios.get('static/betGame.json').then(r => {
+          window.pls = new Pls(
+            'http://localhost:8545',
+            this.contractAddr,
+            r.data.betGame,
+            this.tokenAddr,
+            r.data.pls
+          )
+          this.refreshAccounts()
+          console.log(pls.calAbi())
+        }).catch(err => {
+          console.log(`error is ${err}`)
+        });
+      },
+      refreshAccounts: function () {
+        pls.getAccounts((err, accounts) => {
+          if (err || !accounts || !accounts.length) {
+            setTimeout(this.refreshAccounts, 1000);
+          } else {
+            this.account = accounts[0]
+            console.log('current account ', accounts[0])
+          }
+        });
+      },
+      bet: function () {
+        pls.joinBet(this.account)
+      }
+    },
+    created(){
+      this.init()
     }
   }
 </script>
