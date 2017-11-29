@@ -22,6 +22,9 @@
     padding: 10px;
   }
 
+  .account {
+    margin-left: 2%;
+  }
 </style>
 <template>
   <div class="layout">
@@ -38,11 +41,15 @@
       <div class="layout-content-main">
         <div class="demo-avatar-badge">
           <Badge count="1">
-            <Avatar shape="square" icon="person"/>
+            <Avatar shape="square" icon="person" style="background-color: #87d068"/>
           </Badge>
-          player1
+          <span class="account">Account : {{ account }}</span>
+          <span class="account">balance : {{ balance }}</span>
+
           <Slider v-model="value1"></Slider>
-          <Button type="primary" shape="circle" @click="bet">To bet</Button>
+          <Button type="primary" shape="circle" @click="payToken">By Token</Button>
+          <Button type="success" shape="circle" @click="bet('odd')">To bet odd</Button>
+          <Button type="success" shape="circle" @click="bet('even')">To bet even</Button>
         </div>
       </div>
     </div>
@@ -51,7 +58,7 @@
         <Badge count="2">
           <Avatar shape="square" icon="person"/>
         </Badge>
-        player2
+        <span class="account">Account : player2</span>
         <Slider v-model="value2"></Slider>
       </div>
     </div>
@@ -60,17 +67,8 @@
         <Badge count="3">
           <Avatar shape="square" icon="person"/>
         </Badge>
-        player3
+        <span class="account">Account : player3</span>
         <Slider v-model="value3"></Slider>
-      </div>
-    </div>
-    <div class="layout-content">
-      <div class="layout-content-main">
-        <Badge count="4">
-          <Avatar shape="square" icon="person"/>
-        </Badge>
-        player4
-        <Slider v-model="value4"></Slider>
       </div>
     </div>
   </div>
@@ -86,7 +84,8 @@
         value1: 0,
         value2: 0,
         value3: 0,
-        value4: 0
+        value4: 0,
+        balance: 0
       }
     },
     methods: {
@@ -100,23 +99,52 @@
             r.data.pls
           )
           this.refreshAccounts()
-          console.log(pls.calAbi())
         }).catch(err => {
           console.log(`error is ${err}`)
-        });
+        })
       },
       refreshAccounts: function () {
         pls.getAccounts((err, accounts) => {
           if (err || !accounts || !accounts.length) {
-            setTimeout(this.refreshAccounts, 1000);
+            setTimeout(this.refreshAccounts, 1000)
           } else {
             this.account = accounts[0]
-            console.log('current account ', accounts[0])
+            pls.getTokenInfo(this.account, (err, token) => {
+              if (err) {
+                console.log(err)
+              }
+              console.log('get token info', token)
+              this.balance = `${token.balance || 0} ${token.symbol}`
+            })
+            console.log('current account ', accounts)
           }
         });
       },
-      bet: function () {
-        pls.joinBet(this.account)
+      bet: function (guess) {
+        let result = guess == 'odd'
+        pls.SecretHash(this.account, result, (err, result) => {
+          if (err) {
+            console.error(err)
+          }
+          pls.doBet(this.account, 1000, '0x' + result, (err, result) => {
+            if (err) {
+              console.error(err)
+            }
+            console.log('bet success')
+          })
+        })
+
+      },
+      payToken: function () {
+        console.log('payToken')
+        pls.buyToken(this.account, (err, result) => {
+          if (err) {
+            console.error(err);
+          } else {
+            console.log('payToken over', result)
+            this.refreshAccounts()
+          }
+        })
       }
     },
     created(){
