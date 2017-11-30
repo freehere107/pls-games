@@ -85,7 +85,9 @@ contract BetGame is DSStop {
         tokenMsg.fallbackFrom = _from;
         tokenMsg.fallbackValue = _value;
 
-        this.call(_data);
+        if(! this.call(_data)){
+            revert;
+        }
 
         tokenMsg.init = false;
         tokenMsg.fallbackFrom = 0x0;
