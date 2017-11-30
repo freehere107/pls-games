@@ -29,13 +29,12 @@
 </style>
 <template>
   <div class="layout">
+    <h1>new bat</h1>
+    <Button type="success" shape="circle" @click="startRound('odd')">To bet odd</Button>
+    <Button type="success" shape="circle" @click="startRound('even')">To bet even</Button>
     <Menu mode="horizontal" active-name="1">
       <div class="layout-assistant">
-        <MenuItem name="1">Round 1</MenuItem>
-        <MenuItem name="2">Round 2</MenuItem>
-        <MenuItem name="3">Round 3</MenuItem>
-        <MenuItem name="4">Round 4</MenuItem>
-        <MenuItem name="5">Round 5</MenuItem>
+        <MenuItem v-for="n in 10" name="n">Round {{n}}</MenuItem>
       </div>
     </Menu>
     <div class="layout-content token-sell" v-if="account===tokenOwner">
@@ -66,21 +65,15 @@
           <span class="account">balance : {{ balance }}</span>
           <span class="account">round : {{ roundCount }}</span>
           <span class="account">BetCount : {{ BetCount }}</span>
-
-          <Slider v-model="value1"></Slider>
           <div>
-            <h3>new bat</h3>
-            <Button type="success" shape="circle" @click="startRound('odd')">To bet odd</Button>
-            <Button type="success" shape="circle" @click="startRound('even')">To bet even</Button>
-          </div>
-          <div>
-            <h3>join bat</h3>
+            <h2>join bat</h2>
             <Button type="primary" shape="circle" @click="betWithRound('odd')">To bet odd</Button>
             <Button type="primary" shape="circle" @click="betWithRound('even')">To bet even</Button>
           </div>
         </div>
       </div>
     </div>
+    <Button type="warning" shape="circle" @click="reviewBat()">reviewBat</Button>
     <Button type="warning" shape="circle" @click="settle()">Settle this Bet</Button>
   </div>
 </template>
