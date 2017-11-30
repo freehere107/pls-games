@@ -78,6 +78,11 @@ contract BetGame is DSStop {
         pls = PLS(_pls);
     }
 
+    function receiveToken(address from, uint256 _amount, address _token) public
+    {
+        // do nothing.
+    }
+
     function tokenFallback(address _from, uint256 _value, bytes _data) public
     {
         require(msg.sender == address(pls));
