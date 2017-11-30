@@ -24,6 +24,7 @@
 
   .account {
     margin-left: 2%;
+    margin-right: 2%;
   }
 </style>
 <template>
@@ -45,6 +46,8 @@
           </Badge>
           <span class="account">Account : {{ account }}</span>
           <span class="account">balance : {{ balance }}</span>
+          <span class="account">round : {{ roundCount }}</span>
+          <span class="account">BetCount : {{ BetCount }}</span>
 
           <Slider v-model="value1"></Slider>
           <Button type="primary" shape="circle" @click="payToken">By Token</Button>
@@ -85,7 +88,9 @@
         value2: 0,
         value3: 0,
         value4: 0,
-        balance: 0
+        balance: 0,
+        roundCount: 0,
+        BetCount: 0,
       }
     },
     methods: {
@@ -115,6 +120,14 @@
               }
               console.log('get token info', token)
               this.balance = `${token.balance || 0} ${token.symbol}`
+              pls.getRoundCount(this.account, (err, result) => {
+                this.roundCount = result;
+                console.log('getRoundCount', err, result)
+              })
+              pls.getBetCount(this.account, (err, result) => {
+                this.BetCount = result;
+                console.log('getBetCount', err, result)
+              })
             })
             console.log('current account ', accounts)
           }

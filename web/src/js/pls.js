@@ -9,19 +9,14 @@ class Pls {
     if (!web3url) {
       web3url = 'http://localhost:8545'
     }
-    if (web3url.currentProvider) {
-      this.web3 = new Web3(web3.currentProvider)
-    }
-    else if (typeof web3url === 'string') {
-      this.web3 = new Web3(new Web3.providers.HttpProvider(web3url))
-    }
+    if (typeof web3 !== 'undefined')
+      this.web3 = new Web3(web3.currentProvider);
+    else
+      this.web3 = new Web3(new Web3.providers.HttpProvider(web3url));
     this.contract = new this.web3.eth.Contract(contractABI, contractAddr);
     this.token = new this.web3.eth.Contract(tokenABI, tokenAddr);
     this.decimals = 0
     this.secret = this.web3.utils.utf8ToHex('ethereum');
-    this.tokenAddress = tokenAddr
-    this.contractAddress = contractAddr
-    console.log('this.secret', this.secret)
   }
 
   encodeHex(str, zPadLength) {
@@ -64,7 +59,6 @@ class Pls {
   }
 
   getAccounts(callback) {
-    console.log('this.web3.version', this.web3.version)
     return this.web3.eth.getAccounts(callback);
   }
 
@@ -85,7 +79,6 @@ class Pls {
     return $.when(nameDefer, symbolDefer, decimalsDefer, balanceDefer)
       .then((name, symbol, decimals, balance) => {
           this.decimals = decimals;
-          console.log(decimals, balance)
           symbol = this.web3.utils.hexToAscii(symbol)
           name = this.web3.utils.hexToAscii(name)
           callback(null, {name, symbol, decimals, balance: this.bal2num(balance)});
@@ -94,15 +87,15 @@ class Pls {
   }
 
   doBet(account, deposit, hexStrToBytes, callback) {
-    // hexStrToBytes = this.web3.utils.hexToBytes(hexStrToBytes)
+    deposit = this.web3.utils.toWei(`${deposit}`, "ether")
+    console.log('hexStrToBytes',hexStrToBytes)
     return this.token.methods.balanceOf(account).call({from: account}, (err, balance) => {
       if (err) {
         return callback(err)
       } else if (!(balance >= deposit)) {
         return callback(new Error(`Not enough tokens.Token balance = ${this.bal2num(balance)}, required = ${this.bal2num(deposit)}`));
       }
-      console.log('Token balance', this.tokenAddress, this.bal2num(balance));
-      return this.token.methods.transfer(this.contractAddress, deposit, hexStrToBytes).send({from: account})
+      return this.token.methods['transfer(address,uint256,bytes)'](this.contract.options.address, deposit, hexStrToBytes).send({from: account})
         .on('transactionHash', function (hash) {
           console.log('transactionHash', hash)
         })
@@ -124,13 +117,38 @@ class Pls {
         console.log('transactionHash', hash)
       })
       .on('receipt', function (receipt) {
-        return callback(null, receipt)
+        console.log('receipt', receipt)
       })
       .on('confirmation', function (confirmationNumber, receipt) {
         console.log('confirmation', confirmationNumber, receipt)
       })
-      .on('error', console.error);
+      .on('error', console.error)
+      .then(function (instance) {
+        return callback(null, instance)
+      })
   }
+
+  getRoundCount(account,callback) {
+    return this.contract.methods.roundCount().call({from: account}, (err, info) => {
+      if (err) {
+        console.error(err)
+        return callback(err)
+      }
+      return callback(null, info)
+    })
+  }
+
+
+  getBetCount(account,callback) {
+    return this.contract.methods.betCount().call({from: account}, (err, info) => {
+      if (err) {
+        console.error(err)
+        return callback(err)
+      }
+      return callback(null, info)
+    })
+  }
+
 }
 export {
   Pls
