@@ -51,8 +51,8 @@
 
           <Slider v-model="value1"></Slider>
           <Button type="primary" shape="circle" @click="payToken">By Token</Button>
-          <Button type="success" shape="circle" @click="bet('odd')">To bet odd</Button>
-          <Button type="success" shape="circle" @click="bet('even')">To bet even</Button>
+          <Button type="success" shape="circle" @click="startRound('odd')">To bet odd</Button>
+          <Button type="success" shape="circle" @click="startRound('even')">To bet even</Button>
         </div>
       </div>
     </div>
@@ -63,6 +63,8 @@
         </Badge>
         <span class="account">Account : player2</span>
         <Slider v-model="value2"></Slider>
+        <Button type="success" shape="circle" @click="betWithRound('odd')">To bet odd</Button>
+        <Button type="success" shape="circle" @click="betWithRound('even')">To bet even</Button>
       </div>
     </div>
     <div class="layout-content">
@@ -74,6 +76,7 @@
         <Slider v-model="value3"></Slider>
       </div>
     </div>
+    <Button type="warning" shape="circle" @click="settle()">Settle this Bet</Button>
   </div>
 </template>
 <script>
@@ -81,8 +84,8 @@
   export default {
     data () {
       return {
-        contractAddr: '0x2be23239A93D8Ef827E9a80E2B1a6eef271F9932',
-        tokenAddr: '0x967ba827EBD984b99e5df7c4098d43Bb21bED34f',
+        contractAddr: '0xbe8e10e0c8ce6fba62bdaf9cee9e6a6bd5656d37',
+        tokenAddr: '0x221789a8263eb084a7f575b195190cc3373b0c7a',
         account: '',
         value1: 0,
         value2: 0,
@@ -133,21 +136,6 @@
           }
         });
       },
-      bet: function (guess) {
-        let result = guess == 'odd'
-        pls.SecretHash(this.account, result, (err, result) => {
-          if (err) {
-            console.error(err)
-          }
-          pls.doBet(this.account, 1000, '0x' + result, (err, result) => {
-            if (err) {
-              console.error(err)
-            }
-            console.log('bet success')
-          })
-        })
-
-      },
       payToken: function () {
         console.log('payToken')
         pls.buyToken(this.account, (err, result) => {
@@ -158,7 +146,45 @@
             this.refreshAccounts()
           }
         })
+      },
+      startRound: function (guess) {
+        let result = guess == 'odd'
+        pls.SecretHash(this.account, result, 'startRoundWithFirstBet', (err, result) => {
+          if (err) {
+            console.error(err)
+          }
+          pls.doBet(this.account, 1000, '0x' + result, (err, result) => {
+            if (err) {
+              console.error(err)
+            }
+            this.refreshAccounts()
+            console.log('bet success')
+          })
+        })
+      },
+      betWithRound: function (guess) {
+        let result = guess == 'odd'
+        pls.SecretHash(this.account, result, 'betWithRound', (err, result) => {
+          if (err) {
+            console.error(err)
+          }
+          pls.doBet(this.account, 1000, '0x' + result, (err, result) => {
+            if (err) {
+              console.error(err)
+            }
+            this.refreshAccounts()
+            console.log('bet success')
+          })
+        })
+      },
+      settle: function () {
+        pls.settleBet(this.roundCount, this.account, (err, result) => {
+          if (err) {
+            console.error(err)
+          }
+        })
       }
+
     },
     created(){
       this.init()

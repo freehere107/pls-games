@@ -30,20 +30,26 @@ class Pls {
     return str.padStart(zPadLength, '0')
   }
 
-  calAbi(secretHash) {
-    return abi.methodID('startRoundWithFirstBet', ['uint256', 'uint256', 'uint256', 'bytes32']).toString('hex') +
-      abi.rawEncode(['uint256', 'uint256', 'uint256', 'bytes32'], ["2", "100", "100", secretHash]).toString('hex')
+  calAbi(secretHash, func) {
+    if (func == 'betWithRound') {
+      return abi.methodID('betWithRound', ['uint256', 'bytes32']).toString('hex') +
+        abi.rawEncode(['uint256', 'bytes32'], ["1", secretHash]).toString('hex');
+    } else {
+      return abi.methodID('startRoundWithFirstBet', ['uint256', 'uint256', 'uint256', 'bytes32']).toString('hex') +
+        abi.rawEncode(['uint256', 'uint256', 'uint256', 'bytes32'], ["2", "100", "100", secretHash]).toString('hex')
+    }
+
   }
 
 
-  SecretHash(account, guess, callback) {
+  SecretHash(account, guess, func, callback) {
     let nonce = 256
     return this.contract.methods.calculateSecretHash(nonce, guess, this.secret).call({from: account}, (err, info) => {
       if (err) {
         console.error(err)
         return callback(err)
       }
-      return callback(null, this.calAbi(info))
+      return callback(null, this.calAbi(info, func))
     })
   }
 
@@ -88,30 +94,37 @@ class Pls {
 
   doBet(account, deposit, hexStrToBytes, callback) {
     deposit = this.web3.utils.toWei(`${deposit}`, "ether")
-    console.log('hexStrToBytes',hexStrToBytes)
+    console.log('hexStrToBytes', hexStrToBytes)
+    let confirm = 20
     return this.token.methods.balanceOf(account).call({from: account}, (err, balance) => {
       if (err) {
         return callback(err)
       } else if (!(balance >= deposit)) {
         return callback(new Error(`Not enough tokens.Token balance = ${this.bal2num(balance)}, required = ${this.bal2num(deposit)}`));
       }
-      return this.token.methods['transfer(address,uint256,bytes)'](this.contract.options.address, deposit, hexStrToBytes).send({from: account})
+      return this.token.methods['transfer(address,uint256,bytes)'](this.contract.options.address, deposit, hexStrToBytes).send({
+        from: account,
+        gas: 600000
+      })
         .on('transactionHash', function (hash) {
           console.log('transactionHash', hash)
         })
         .on('receipt', function (receipt) {
-          return callback(null, receipt)
+          console.log('receipt', receipt)
         })
         .on('confirmation', function (confirmationNumber, receipt) {
-          console.log('confirmation', confirmationNumber, receipt)
+          if (confirmationNumber == confirm) {
+            return callback(null, receipt)
+          }
         })
-        .on('error', console.error);
+        .on('error', console.error)
     });
   }
 
   buyToken(account, callback) {//购买token
     let amount = this.web3.utils.toWei('1', 'ether')
     console.log('amount.....', amount)
+    let confirm = 20
     return this.token.methods.mint(account, this.web3.utils.toWei('1000', "ether")).send({from: account})
       .on('transactionHash', function (hash) {
         console.log('transactionHash', hash)
@@ -120,15 +133,14 @@ class Pls {
         console.log('receipt', receipt)
       })
       .on('confirmation', function (confirmationNumber, receipt) {
-        console.log('confirmation', confirmationNumber, receipt)
+        if (confirmationNumber == confirm) {
+          return callback(null, receipt)
+        }
       })
       .on('error', console.error)
-      .then(function (instance) {
-        return callback(null, instance)
-      })
   }
 
-  getRoundCount(account,callback) {
+  getRoundCount(account, callback) {
     return this.contract.methods.roundCount().call({from: account}, (err, info) => {
       if (err) {
         console.error(err)
@@ -139,7 +151,7 @@ class Pls {
   }
 
 
-  getBetCount(account,callback) {
+  getBetCount(account, callback) {
     return this.contract.methods.betCount().call({from: account}, (err, info) => {
       if (err) {
         console.error(err)
@@ -149,6 +161,34 @@ class Pls {
     })
   }
 
+  settleBet(roundId, account, callback) {
+    return this.contract.methods.finalizeRound(roundId).call({}, (err, info) => {
+      if (err) {
+        console.error(err)
+        return callback(err)
+      }
+      console.log('finalizeRound', info)
+      return this.contract.methods.withdraw().call({from: account}, (err, info) => {
+        if (err) {
+          console.error(err)
+          return callback(err)
+        }
+        console.log('withdraw', info)
+        return callback(err, info)
+      })
+    })
+  }
+
+  getBetRevealed(roundId, callback) {
+    return this.contract.methods.betRevealed(roundId).call({}, (err, info) => {
+      if (err) {
+        console.error(err)
+        return callback(err)
+      }
+      console.log('getBetRevealed', info)
+      return callback(err, info)
+    })
+  }
 }
 export {
   Pls

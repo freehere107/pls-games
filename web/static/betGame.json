@@ -230,6 +230,28 @@
     {
       "constant": true,
       "inputs": [],
+      "name": "tokenMsg",
+      "outputs": [
+        {
+          "name": "init",
+          "type": "bool"
+        },
+        {
+          "name": "fallbackFrom",
+          "type": "address"
+        },
+        {
+          "name": "fallbackValue",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
       "name": "stopped",
       "outputs": [
         {
@@ -379,6 +401,28 @@
       ],
       "payable": false,
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "name": "_amount",
+          "type": "uint256"
+        },
+        {
+          "name": "_token",
+          "type": "address"
+        }
+      ],
+      "name": "receiveToken",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
