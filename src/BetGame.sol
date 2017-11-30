@@ -91,7 +91,7 @@ contract BetGame is DSStop {
         tokenMsg.fallbackValue = _value;
 
         if(! this.call(_data)){
-            revert;
+            revert();
         }
 
         tokenMsg.init = false;
