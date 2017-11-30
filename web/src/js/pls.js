@@ -17,6 +17,7 @@ class Pls {
     this.token = new this.web3.eth.Contract(tokenABI, tokenAddr);
     this.decimals = 0
     this.secret = this.web3.utils.utf8ToHex('ethereum');
+    this.nonce = 256
   }
 
   encodeHex(str, zPadLength) {
@@ -38,13 +39,10 @@ class Pls {
       return abi.methodID('startRoundWithFirstBet', ['uint256', 'uint256', 'uint256', 'bytes32']).toString('hex') +
         abi.rawEncode(['uint256', 'uint256', 'uint256', 'bytes32'], ["2", "100", "100", secretHash]).toString('hex')
     }
-
   }
 
-
   SecretHash(account, guess, func, callback) {
-    let nonce = 256
-    return this.contract.methods.calculateSecretHash(nonce, guess, this.secret).call({from: account}, (err, info) => {
+    return this.contract.methods.calculateSecretHash(this.nonce, guess, this.secret).call({from: account}, (err, info) => {
       if (err) {
         console.error(err)
         return callback(err)
@@ -121,11 +119,9 @@ class Pls {
     });
   }
 
-  buyToken(account, callback) {//购买token
-    let amount = this.web3.utils.toWei('1', 'ether')
-    console.log('amount.....', amount)
+  buyToken(account, to, deposit, callback) {//购买token
     let confirm = 20
-    return this.token.methods.mint(account, this.web3.utils.toWei('1000', "ether")).send({from: account})
+    return this.token.methods.mint(to, this.web3.utils.toWei(`${deposit}`, "ether")).send({from: account})
       .on('transactionHash', function (hash) {
         console.log('transactionHash', hash)
       })
@@ -162,7 +158,7 @@ class Pls {
   }
 
   settleBet(roundId, account, callback) {
-    return this.contract.methods.finalizeRound(roundId).call({}, (err, info) => {
+    return this.contract.methods.finalizeRound(roundId).call({from: account}, (err, info) => {
       if (err) {
         console.error(err)
         return callback(err)
@@ -185,7 +181,16 @@ class Pls {
         console.error(err)
         return callback(err)
       }
-      console.log('getBetRevealed', info)
+      return callback(err, info)
+    })
+  }
+
+  reviewerBet(betId, guess, callback) {
+    return this.contract.methods.revealBet(betId, this.nonce, guess, this.secret).call({}, (err, info) => {
+      if (err) {
+        console.error(err)
+        return callback(err)
+      }
       return callback(err, info)
     })
   }

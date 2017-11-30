@@ -38,6 +38,24 @@
         <MenuItem name="5">Round 5</MenuItem>
       </div>
     </Menu>
+    <div class="layout-content token-sell" v-if="account===tokenOwner">
+      <h3>Token sell</h3>
+      <Form ref="formInline" :model="formInline" :rules="ruleInline" inline>
+        <FormItem prop="token">
+          <Input type="text" v-model="formInline.token" placeholder="token">
+          <Icon type="ios-person-outline" slot="prepend"></Icon>
+          </Input>
+        </FormItem>
+        <FormItem prop="address">
+          <Input type="text" v-model="formInline.address" placeholder="address">
+          <Icon type="ios-locked-outline" slot="prepend"></Icon>
+          </Input>
+        </FormItem>
+        <FormItem>
+          <Button type="primary" @click="handleSubmit('formInline')">submit</Button>
+        </FormItem>
+      </Form>
+    </div>
     <div class="layout-content">
       <div class="layout-content-main">
         <div class="demo-avatar-badge">
@@ -50,30 +68,17 @@
           <span class="account">BetCount : {{ BetCount }}</span>
 
           <Slider v-model="value1"></Slider>
-          <Button type="primary" shape="circle" @click="payToken">By Token</Button>
-          <Button type="success" shape="circle" @click="startRound('odd')">To bet odd</Button>
-          <Button type="success" shape="circle" @click="startRound('even')">To bet even</Button>
+          <div>
+            <h3>new bat</h3>
+            <Button type="success" shape="circle" @click="startRound('odd')">To bet odd</Button>
+            <Button type="success" shape="circle" @click="startRound('even')">To bet even</Button>
+          </div>
+          <div>
+            <h3>join bat</h3>
+            <Button type="primary" shape="circle" @click="betWithRound('odd')">To bet odd</Button>
+            <Button type="primary" shape="circle" @click="betWithRound('even')">To bet even</Button>
+          </div>
         </div>
-      </div>
-    </div>
-    <div class="layout-content">
-      <div class="layout-content-main">
-        <Badge count="2">
-          <Avatar shape="square" icon="person"/>
-        </Badge>
-        <span class="account">Account : player2</span>
-        <Slider v-model="value2"></Slider>
-        <Button type="success" shape="circle" @click="betWithRound('odd')">To bet odd</Button>
-        <Button type="success" shape="circle" @click="betWithRound('even')">To bet even</Button>
-      </div>
-    </div>
-    <div class="layout-content">
-      <div class="layout-content-main">
-        <Badge count="3">
-          <Avatar shape="square" icon="person"/>
-        </Badge>
-        <span class="account">Account : player3</span>
-        <Slider v-model="value3"></Slider>
       </div>
     </div>
     <Button type="warning" shape="circle" @click="settle()">Settle this Bet</Button>
@@ -86,14 +91,25 @@
       return {
         contractAddr: '0xbe8e10e0c8ce6fba62bdaf9cee9e6a6bd5656d37',
         tokenAddr: '0x221789a8263eb084a7f575b195190cc3373b0c7a',
+        tokenOwner: '0x00a1537d251a6a4c4effAb76948899061FeA47b9',
         account: '',
         value1: 0,
-        value2: 0,
-        value3: 0,
-        value4: 0,
         balance: 0,
         roundCount: 0,
         BetCount: 0,
+        //form
+        formInline: {
+          token: '',
+          address: ''
+        },
+        ruleInline: {
+          token: [
+            {required: true, message: 'Please fill in the user name', trigger: 'blur'}
+          ],
+          address: [
+            {required: true, message: 'Please fill in the address.', trigger: 'blur'}
+          ]
+        }
       }
     },
     methods: {
@@ -111,11 +127,13 @@
           console.log(`error is ${err}`)
         })
       },
+      //get current account info
       refreshAccounts: function () {
         pls.getAccounts((err, accounts) => {
           if (err || !accounts || !accounts.length) {
             setTimeout(this.refreshAccounts, 1000)
           } else {
+            console.log('all accounts', accounts)
             this.account = accounts[0]
             pls.getTokenInfo(this.account, (err, token) => {
               if (err) {
@@ -131,22 +149,33 @@
                 this.BetCount = result;
                 console.log('getBetCount', err, result)
               })
+              pls.getBetRevealed(1, (err, result) => {
+                console.log('getBetRevealed', err, result)
+              })
             })
             console.log('current account ', accounts)
           }
         });
       },
-      payToken: function () {
-        console.log('payToken')
-        pls.buyToken(this.account, (err, result) => {
-          if (err) {
-            console.error(err);
+      //owner send token to address
+      handleSubmit(name) {
+        this.$refs[name].validate((valid) => {
+          if (valid) {
+            pls.buyToken(this.account, this.formInline.address, this.formInline.token, (err, result) => {
+              if (err) {
+                console.error(err);
+              } else {
+                console.log('payToken over', result)
+                this.$Message.success('Success!');
+                this.refreshAccounts()
+              }
+            })
           } else {
-            console.log('payToken over', result)
-            this.refreshAccounts()
+            this.$Message.error('Fail!');
           }
         })
       },
+      //open new pls
       startRound: function (guess) {
         let result = guess == 'odd'
         pls.SecretHash(this.account, result, 'startRoundWithFirstBet', (err, result) => {
@@ -162,6 +191,7 @@
           })
         })
       },
+      //bet with exist round
       betWithRound: function (guess) {
         let result = guess == 'odd'
         pls.SecretHash(this.account, result, 'betWithRound', (err, result) => {
@@ -177,8 +207,16 @@
           })
         })
       },
+      reviewBat: function (betId, guess) {
+        pls.reviewerBet(betId, guess, (err, result) => {
+          if (err) {
+            console.error(err)
+          }
+        })
+      },
+      //settle one bet
       settle: function () {
-        pls.settleBet(this.roundCount, this.account, (err, result) => {
+        pls.settleBet(1, this.account, (err, result) => {
           if (err) {
             console.error(err)
           }
