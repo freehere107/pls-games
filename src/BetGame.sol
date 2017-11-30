@@ -49,12 +49,24 @@ contract BetGame is DSStop {
 
     PLS public pls;
 
-    address fallbackFrom;
-    uint256 fallbackValue;
+    struct TokenMessage {
+        bool init;
+        address fallbackFrom;
+        uint256 fallbackValue;
+    }
+
+    TokenMessage public tokenMsg;
 
     modifier notNull(address _address) {
         if (_address == 0)
             throw;
+        _;
+    }
+
+    modifier tokenPayable {
+        require(msg.sender == address(this));
+        require(tokenMsg.init);
+
         _;
     }
 
@@ -66,46 +78,54 @@ contract BetGame is DSStop {
         pls = PLS(_pls);
     }
 
+    function receiveToken(address from, uint256 _amount, address _token) public
+    {
+        // do nothing.
+    }
+
     function tokenFallback(address _from, uint256 _value, bytes _data) public
     {
         require(msg.sender == address(pls));
-        fallbackFrom = _from;
-        fallbackValue = _value;
+        tokenMsg.init = true;
+        tokenMsg.fallbackFrom = _from;
+        tokenMsg.fallbackValue = _value;
 
-        this.call(_data);
+        if(! this.call(_data)){
+            revert;
+        }
+
+        tokenMsg.init = false;
+        tokenMsg.fallbackFrom = 0x0;
+        tokenMsg.fallbackValue = 0;
     }
     
-    function startRoundWithFirstBet(uint _betCount, uint _maxBetBlockCount, uint _maxRevealBlockCount, bytes32 _secretHashForFirstBet) public returns (uint roundId)
+    function startRoundWithFirstBet(uint _betCount, uint _maxBetBlockCount, uint _maxRevealBlockCount, bytes32 _secretHashForFirstBet) public tokenPayable returns (uint roundId)
     {
-        require(msg.sender == address(this));
-
         require(_betCount >= 2);
         require(_maxBetBlockCount >= 100);
         require(_maxRevealBlockCount >= 100);
 
-        require(fallbackValue > 0);
+        require(tokenMsg.fallbackValue > 0);
 
-        uint betId = addBet(fallbackFrom, _secretHashForFirstBet, fallbackValue);
+        uint betId = addBet(tokenMsg.fallbackFrom, _secretHashForFirstBet, tokenMsg.fallbackValue);
 
         roundId = addRound(_betCount, _maxBetBlockCount, _maxRevealBlockCount, betId);
     }
 
-    function betWithRound(uint _roundId, bytes32 _secretHashForBet) public
+    function betWithRound(uint _roundId, bytes32 _secretHashForBet) public tokenPayable
     {
-        require(msg.sender == address(this));
-
-        require(fallbackValue > 0);
+        require(tokenMsg.fallbackValue > 0);
         require(rounds[_roundId].finalizedBlock == 0);
         
         require(rounds[_roundId].betIds.length < rounds[_roundId].betCount);
 
 
         for (uint i=0; i < rounds[_roundId].betIds.length; i++) {
-            if (bets[rounds[_roundId].betIds[i]].player == fallbackFrom)
+            if (bets[rounds[_roundId].betIds[i]].player == tokenMsg.fallbackFrom)
                 throw;
         }
 
-        uint betId = addBet(fallbackFrom, _secretHashForBet, fallbackValue);
+        uint betId = addBet(tokenMsg.fallbackFrom, _secretHashForBet, tokenMsg.fallbackValue);
 
         rounds[_roundId].betIds.push(betId);
 
