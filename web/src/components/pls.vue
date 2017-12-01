@@ -4,82 +4,96 @@
     background: #f5f7f9;
   }
 
-  .layout-assistant {
-    width: 100%;
-    margin: 0 auto;
-    height: inherit;
+  .token-sell {
+    padding: 3%;
   }
 
-  .layout-content {
-    min-height: 50px;
-    margin: 15px;
-    overflow: hidden;
-    background: #fff;
-    border-radius: 4px;
-  }
-
-  .layout-content-main {
-    padding: 10px;
-  }
-
-  .account {
-    margin-left: 2%;
-    margin-right: 2%;
+  .action-button {
+    margin-right: 2rem;
+    margin-left: 2rem;
   }
 </style>
 <template>
   <div class="layout">
-    <h1>Round : {{ roundCount }}</h1>
-    <h1>BetCount : {{ BetCount }}</h1>
-    <div>
-      <span style="font-size: 1.5rem">new bat</span>
-      <Button type="success" shape="circle" @click="startRound('odd')">To bet odd</Button>
-      <Button type="success" shape="circle" @click="startRound('even')">To bet even</Button>
-    </div>
-    <label>Jump to Round</label>
-    <input type="number" name="jump" v-model="currentRound" v-bind:max="roundCount" min="1">
-    <Menu mode="horizontal">
-      <div class="layout-assistant">
-        <MenuItem :name="currentRound">Round {{currentRound}}</MenuItem>
-      </div>
+    <Menu mode="horizontal" :theme="theme1" active-name="1" @on-select="menuAction">
+      <MenuItem name="bet">
+        <Icon type="ios-paper"></Icon>
+        Bet
+      </MenuItem>
+      <MenuItem name="review" v-if="!Revealed && currentBat">
+        <Icon type="ios-people"></Icon>
+        Review
+      </MenuItem>
+      <Submenu name="3">
+        <template slot="title">
+          <Icon type="stats-bars"></Icon>
+          New
+        </template>
+        <MenuGroup title="Bet">
+          <MenuItem name="odd">Odd</MenuItem>
+          <MenuItem name="even">Even</MenuItem>
+        </MenuGroup>
+      </Submenu>
+      <MenuItem name="4" v-if="account===tokenOwner">
+        <Icon type="ios-paper"></Icon>
+        Token
+      </MenuItem>
+
     </Menu>
-    <div class="layout-content token-sell" v-if="account===tokenOwner">
-      <h3>Token sell</h3>
-      <Form ref="formInline" :model="formInline" :rules="ruleInline" inline>
-        <FormItem prop="token">
-          <Input type="text" v-model="formInline.token" placeholder="token" min="1">
-          <Icon type="ios-person-outline" slot="prepend"></Icon>
-          </Input>
-        </FormItem>
-        <FormItem prop="address">
-          <Input type="text" v-model="formInline.address" placeholder="address">
-          <Icon type="ios-locked-outline" slot="prepend"></Icon>
-          </Input>
-        </FormItem>
-        <FormItem>
-          <Button type="primary" @click="handleSubmit('formInline')">submit</Button>
-        </FormItem>
-      </Form>
-    </div>
-    <div class="layout-content">
-      <div class="layout-content-main">
-        <div class="demo-avatar-badge">
-          <Badge count="1">
-            <Avatar shape="square" icon="person" style="background-color: #87d068"/>
-          </Badge>
-          <p class="account">Account : {{ account }}</p>
-          <p class="account">balance : {{ balance }}</p>
-          <p class="account">Revealed : {{ Revealed }}</p>
-          <div v-if="currentBat===null && roundCount>1">
-            <h2>join bat</h2>
-            <Button type="primary" shape="circle" @click="betWithRound('odd')">To bet odd</Button>
-            <Button type="primary" shape="circle" @click="betWithRound('even')">To bet even</Button>
-          </div>
-        </div>
+    <Row>
+      <Col span="12">
+      <Card>
+        <p slot="title">Current User</p>
+        <p>Account : {{ account.substring(0,12) }}</p>
+        <p>balance : {{ balance }}</p>
+        <p>Revealed : {{ Revealed }}</p>
+      </Card>
+      </Col>
+      <Col span="12">
+      <Card>
+        <p slot="title">Bet Round</p>
+        <p>Current : {{ currentRound }}</p>
+        <p>Rounds : {{ roundCount }}</p>
+        <p>Bets : {{ BetCount }}</p>
+      </Card>
+      </Col>
+    </Row>
+    <Row v-if="account===tokenOwner">
+      <Col span="24">
+      <div class="layout-content token-sell">
+        <h3>Token sell</h3>
+        <Form :model="formInline" :rules="ruleInline">
+          <FormItem prop="token">
+            <Input type="text" v-model="formInline.token" placeholder="token" min="1">
+            <Icon type="ios-person-outline" slot="prepend"></Icon>
+            </Input>
+          </FormItem>
+          <FormItem prop="address">
+            <Input type="text" v-model="formInline.address" placeholder="address">
+            <Icon type="ios-locked-outline" slot="prepend"></Icon>
+            </Input>
+          </FormItem>
+          <FormItem>
+            <Button type="primary" @click="handleSubmit('formInline')">submit</Button>
+          </FormItem>
+        </Form>
       </div>
-    </div>
-    <Button type="warning" shape="circle" @click="reviewBat()" v-if="!Revealed && currentBat">reviewBat</Button>
-    <Button type="warning" shape="circle" @click="settle()" v-if="Revealed && currentBat">Settle this Bet</Button>
+      </Col>
+    </Row>
+    <Row type="flex" class-name="action-button">
+      <Col span="24">
+      <Input v-model="currentRound" icon="ios-clock-outline" style="width: 200px" min="1"></Input>
+      <Button type="primary" v-if="currentBat===null && roundCount>1" size="large" @click="betWithRound('odd')">
+        Odd
+      </Button>
+      <Button type="primary" v-if="currentBat===null && roundCount>1" size="large" @click="betWithRound('even')">
+        Even
+      </Button>
+      <Button type="success" size="large" v-if="Revealed && currentBat" @click="settle()">
+        SETTLE THE BET
+      </Button>
+      </Col>
+    </Row>
     <Spin size="large" fix v-if="spinShow"></Spin>
   </div>
 </template>
@@ -88,11 +102,11 @@
   export default {
     data () {
       return {
+        theme1: 'dark',
         contractAddr: '0xf6e690b482ab44ad93190aafc048fea5d3d074dc',
         tokenAddr: '0x221789a8263eb084a7f575b195190cc3373b0c7a',
         tokenOwner: '0x00a1537d251a6a4c4effAb76948899061FeA47b9',
         account: '',
-        value1: 0,
         spinShow: false,
         balance: 0,
         roundCount: 0,
@@ -118,7 +132,7 @@
       currentRound: function (newRound) {
         this.refreshAccounts()
         console.log('currentRound', newRound)
-      }
+      },
     },
     methods: {
       init: function () {
@@ -183,8 +197,22 @@
           }
         })
       },
+      menuAction: function (name) {
+        switch (name) {
+          case 'review':
+            this.reviewBat()
+            break;
+          case 'odd':
+            this.startRound('odd')
+            break;
+          case 'even':
+            this.startRound('even')
+            break;
+        }
+      },
       //open new pls
       startRound: function (guess) {
+        console.log('guess', guess)
         this.spinShow = true
         let guessResult = guess == 'odd'
         pls.SecretHash(this.account, guessResult, 'startRoundWithFirstBet', this.currentRound, (err, result) => {
