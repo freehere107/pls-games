@@ -31,23 +31,22 @@ class Pls {
     return str.padStart(zPadLength, '0')
   }
 
-  calAbi(secretHash, func) {
-    if (func == 'betWithRound') {
-      return abi.methodID('betWithRound', ['uint256', 'bytes32']).toString('hex') +
-        abi.rawEncode(['uint256', 'bytes32'], ["1", secretHash]).toString('hex');
-    } else {
-      return abi.methodID('startRoundWithFirstBet', ['uint256', 'uint256', 'uint256', 'bytes32']).toString('hex') +
-        abi.rawEncode(['uint256', 'uint256', 'uint256', 'bytes32'], ["2", "100", "100", secretHash]).toString('hex')
-    }
-  }
 
-  SecretHash(account, guess, func, callback) {
+  SecretHash(account, guess, func, betId, callback) {
     return this.contract.methods.calculateSecretHash(this.nonce, guess, this.secret).call({from: account}, (err, info) => {
       if (err) {
         console.error(err)
         return callback(err)
       }
-      return callback(null, this.calAbi(info, func))
+      let calResult = ''
+      if (func === 'betWithRound') {
+        calResult = abi.methodID('betWithRound', ['uint256', 'bytes32']).toString('hex') +
+          abi.rawEncode(['uint256', 'bytes32'], [`${betId}`, info]).toString('hex')
+      } else {
+        calResult = abi.methodID('startRoundWithFirstBet', ['uint256', 'uint256', 'uint256', 'bytes32']).toString('hex') +
+          abi.rawEncode(['uint256', 'uint256', 'uint256', 'bytes32'], ["2", "100", "100", info]).toString('hex')
+      }
+      return callback(null, calResult)
     })
   }
 
@@ -175,7 +174,7 @@ class Pls {
     })
   }
 
-  getBetRevealed(roundId, callback) {
+  getBatRevealed(roundId, callback) {
     return this.contract.methods.betRevealed(roundId).call({}, (err, info) => {
       if (err) {
         console.error(err)
@@ -185,12 +184,13 @@ class Pls {
     })
   }
 
-  reviewerBet(betId, guess, callback) {
-    return this.contract.methods.revealBet(betId, this.nonce, guess, this.secret).call({}, (err, info) => {
+  reviewerBat(betId, guess, callback) {
+    return this.contract.methods.revealBet(0, this.nonce, guess, this.secret).call({}, (err, info) => {
       if (err) {
         console.error(err)
         return callback(err)
       }
+      console.log('reviewerBat call', betId, this.nonce, guess, this.secret)
       return callback(err, info)
     })
   }
