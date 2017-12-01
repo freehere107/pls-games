@@ -185,7 +185,7 @@ class Pls {
   }
 
   reviewerBat(betId, guess, callback) {
-    return this.contract.methods.revealBet(0, this.nonce, guess, this.secret).call({}, (err, info) => {
+    return this.contract.methods.revealBet(betId, this.nonce, guess, this.secret).call({}, (err, info) => {
       if (err) {
         console.error(err)
         return callback(err)

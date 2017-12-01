@@ -146,8 +146,8 @@
               this.balance = `${token.balance || 0} ${token.symbol}`
               pls.getRoundCount(this.account, (err, result) => {
                 this.roundCount = result;
-                this.currentBat = localStorage.getItem(this.account + '-' + `${this.currentRound}`)
-                console.log(' this.currentBat', this.currentBat)
+                let currentBat = localStorage.getItem(this.account + '-' + `${this.currentRound}`)
+                this.currentBat = currentBat === null ? null : JSON.parse(currentBat)
                 pls.getBetCount(this.account, (err, result) => {
                   this.BetCount = result;
                   pls.getBatRevealed(this.currentRound, (err, result) => {
@@ -183,9 +183,6 @@
           }
         })
       },
-      currentBatInfo(){
-        this.currentBat = localStorage.getItem(this.account + '-' + `${this.currentRound}`)
-      },
       //open new pls
       startRound: function (guess) {
         this.spinShow = true
@@ -198,7 +195,7 @@
             if (err) {
               console.error(err)
             }
-            localStorage.setItem(this.account + '-' + `${this.currentRound}`, guessResult)
+            localStorage.setItem(this.account + '-' + `${this.roundCount}`, JSON.stringify({'guess': guessResult, 'betId': this.BetCount}))
             this.refreshAccounts()
             console.log('bet success')
           })
@@ -208,6 +205,7 @@
       betWithRound: function (guess) {
         let guessResult = guess == 'odd'
         this.spinShow = true
+        console.log(this.account, guessResult, 'betWithRound', this.currentRound)
         pls.SecretHash(this.account, guessResult, 'betWithRound', this.currentRound, (err, result) => {
           if (err) {
             console.error(err)
@@ -216,7 +214,7 @@
             if (err) {
               console.error(err)
             }
-            localStorage.setItem(this.account + '-' + `${this.currentRound}`, guessResult)
+            localStorage.setItem(this.account + '-' + `${this.currentRound}`, JSON.stringify({'guess': guessResult, 'betId': this.BetCount}))
             this.refreshAccounts()
             console.log('bet success')
           })
@@ -224,12 +222,11 @@
       },
       reviewBat: function () {
         this.spinShow = true
-        let guess = this.currentBat
         if (this.currentBat === null) {
           console.error('review error')
           return
         }
-        pls.reviewerBat(this.currentRound, this.currentBat, (err, result) => {
+        pls.reviewerBat(this.currentBat.betId, this.currentBat.guess, (err, result) => {
           if (err) {
             console.error(err)
           } else {
