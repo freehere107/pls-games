@@ -103,7 +103,7 @@
     data () {
       return {
         theme1: 'dark',
-        contractAddr: '0x827ceb298512a7ea739f3ad894355b2f7b872ef7',
+        contractAddr: '0xa68b9077f266902104739b7e80b3789b428f5ca5',
         tokenAddr: '0x221789a8263eb084a7f575b195190cc3373b0c7a',
         tokenOwner: '0x00a1537d251a6a4c4effAb76948899061FeA47b9',
         account: '',
