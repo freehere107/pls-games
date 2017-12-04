@@ -103,7 +103,7 @@
     data () {
       return {
         theme1: 'dark',
-        contractAddr: '0x3fb7112fc3b266ff4532bbfe4130179c0397f690',
+        contractAddr: '0x827ceb298512a7ea739f3ad894355b2f7b872ef7',
         tokenAddr: '0x221789a8263eb084a7f575b195190cc3373b0c7a',
         tokenOwner: '0x00a1537d251a6a4c4effAb76948899061FeA47b9',
         account: '',
@@ -114,6 +114,7 @@
         currentRound: 1,
         currentBat: null,
         Revealed: false,
+        finalizedBlock: 0,
         formInline: {
           token: '',
           address: ''
@@ -167,6 +168,12 @@
                   pls.getBatRevealed(this.currentRound, (err, result) => {
                     console.log('pls.getBatRevealed', this.currentRound, result)
                     this.Revealed = result
+                    if (this.Revealed == true) {
+                      pls.getRoundInfo(this.currentRound, (err, result) => {
+                        console.log('pls.getBatRevealed', this.currentRound, result)
+                        this.finalizedBlock = result.finalizedBlock
+                      })
+                    }
                   })
                   this.spinShow = false
                 })
@@ -254,7 +261,7 @@
           console.error('review error')
           return
         }
-        pls.reviewerBat(this.currentBat.betId, this.currentBat.guess, (err, result) => {
+        pls.reviewerBat(this.account, this.currentBat.betId, this.currentBat.guess, (err, result) => {
           if (err) {
             console.error(err)
           } else {
@@ -266,14 +273,23 @@
       //settle one bet
       settle: function () {
         this.spinShow = true
-        pls.settleBet(this.currentRound, this.account, (err, result) => {
-          if (err) {
-            console.error(err)
-          }
-          this.refreshAccounts()
-        })
-      }
+        if (this.finalizedBlock == 0) {
+          pls.settleBet(this.currentRound, this.account, (err, result) => {
+            if (err) {
+              console.error(err)
+            }
+            this.refreshAccounts()
+          })
+        } else {
+          pls.withdrawbet(this.account, (err, result) => {
+            if (err) {
+              console.error(err)
+            }
+            this.refreshAccounts()
+          })
+        }
 
+      },
     },
     created(){
       this.init()

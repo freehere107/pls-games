@@ -157,13 +157,13 @@ class Pls {
   }
 
   settleBet(roundId, account, callback) {
-    return this.contract.methods.finalizeRound(roundId).call({from: account}, (err, info) => {
+    return this.contract.methods.finalizeRound(roundId).send({from: account}, (err, info) => {
       if (err) {
         console.error(err)
         return callback(err)
       }
       console.log('finalizeRound', info)
-      return this.contract.methods.withdraw().call({from: account}, (err, info) => {
+      return this.contract.methods.withdraw().send({from: account}, (err, info) => {
         if (err) {
           console.error(err)
           return callback(err)
@@ -173,6 +173,18 @@ class Pls {
       })
     })
   }
+
+  withdrawbet(account,callback) {
+    return this.contract.methods.withdraw().send({from: account}, (err, info) => {
+      if (err) {
+        console.error(err)
+        return callback(err)
+      }
+      console.log('withdraw', info)
+      return callback(err, info)
+    })
+  }
+
 
   getBatRevealed(roundId, callback) {
     return this.contract.methods.betRevealed(roundId).call({}, (err, info) => {
@@ -184,8 +196,19 @@ class Pls {
     })
   }
 
-  reviewerBat(betId, guess, callback) {
-    return this.contract.methods.revealBet(betId, this.nonce, guess, this.secret).call({}, (err, info) => {
+  getRoundInfo(roundId, callback) {
+    return this.contract.methods.rounds(roundId).call({}, (err, info) => {
+      if (err) {
+        console.error(err)
+        return callback(err)
+      }
+      return callback(err, info)
+    })
+  }
+
+
+  reviewerBat(account, betId, guess, callback) {
+    return this.contract.methods.revealBet(betId, this.nonce, guess, this.secret).send({from: account}, (err, info) => {
       if (err) {
         console.error(err)
         return callback(err)
