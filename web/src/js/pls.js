@@ -2,7 +2,7 @@
 var abi = require('ethereumjs-abi')
 var Web3 = require('web3')
 if (typeof $ == 'undefined' && typeof require === 'function') {
-  var $ = require('jquery');
+  var $ = require('jquery')
 }
 class Pls {
   constructor(web3url, contractAddr, contractABI, tokenAddr, tokenABI) {
@@ -10,13 +10,13 @@ class Pls {
       web3url = 'http://localhost:8545'
     }
     if (typeof web3 !== 'undefined')
-      this.web3 = new Web3(web3.currentProvider);
+      this.web3 = new Web3(web3.currentProvider)
     else
-      this.web3 = new Web3(new Web3.providers.HttpProvider(web3url));
-    this.contract = new this.web3.eth.Contract(contractABI, contractAddr);
-    this.token = new this.web3.eth.Contract(tokenABI, tokenAddr);
+      this.web3 = new Web3(new Web3.providers.HttpProvider(web3url))
+    this.contract = new this.web3.eth.Contract(contractABI, contractAddr)
+    this.token = new this.web3.eth.Contract(tokenABI, tokenAddr)
     this.decimals = 0
-    this.secret = this.web3.utils.utf8ToHex('ethereum');
+    this.secret = this.web3.utils.utf8ToHex('ethereum')
     this.nonce = 256
   }
 
@@ -62,31 +62,31 @@ class Pls {
   }
 
   getAccounts(callback) {
-    return this.web3.eth.getAccounts(callback);
+    return this.web3.eth.getAccounts(callback)
   }
 
   getTokenInfo(account, callback) {
-    const nameDefer = $.Deferred();
-    const symbolDefer = $.Deferred();
-    const decimalsDefer = $.Deferred();
-    const balanceDefer = $.Deferred();
+    const nameDefer = $.Deferred()
+    const symbolDefer = $.Deferred()
+    const decimalsDefer = $.Deferred()
+    const balanceDefer = $.Deferred()
     this.token.methods.name().call((err, name) =>
-      err ? nameDefer.reject(err) : nameDefer.resolve(name));
+      err ? nameDefer.reject(err) : nameDefer.resolve(name))
     this.token.methods.symbol().call((err, symbol) =>
-      err ? symbolDefer.reject(err) : symbolDefer.resolve(symbol));
+      err ? symbolDefer.reject(err) : symbolDefer.resolve(symbol))
     this.token.methods.decimals().call((err, decimals) =>
-      err ? decimalsDefer.reject(err) : decimalsDefer.resolve(decimals));
+      err ? decimalsDefer.reject(err) : decimalsDefer.resolve(decimals))
     this.token.methods.balanceOf(account).call((err, balance) =>
-      err ? balanceDefer.reject(err) : balanceDefer.resolve(balance));
+      err ? balanceDefer.reject(err) : balanceDefer.resolve(balance))
 
     return $.when(nameDefer, symbolDefer, decimalsDefer, balanceDefer)
       .then((name, symbol, decimals, balance) => {
-          this.decimals = decimals;
+          this.decimals = decimals
           symbol = this.web3.utils.hexToAscii(symbol)
           name = this.web3.utils.hexToAscii(name)
-          callback(null, {name, symbol, decimals, balance: this.bal2num(balance)});
+          callback(null, {name, symbol, decimals, balance: this.bal2num(balance)})
         },
-        (err) => callback(err));
+        (err) => callback(err))
   }
 
   doBet(account, deposit, hexStrToBytes, callback) {
@@ -97,7 +97,7 @@ class Pls {
       if (err) {
         return callback(err)
       } else if (!(balance >= deposit)) {
-        return callback(new Error(`Not enough tokens.Token balance = ${this.bal2num(balance)}, required = ${this.bal2num(deposit)}`));
+        return callback(new Error(`Not enough tokens.Token balance = ${this.bal2num(balance)}, required = ${this.bal2num(deposit)}`))
       }
       return this.token.methods['transfer(address,uint256,bytes)'](this.contract.options.address, deposit, hexStrToBytes).send({
         from: account,
@@ -115,7 +115,7 @@ class Pls {
           }
         })
         .on('error', console.error)
-    });
+    })
   }
 
   buyToken(account, to, deposit, callback) {//购买token

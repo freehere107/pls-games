@@ -1,16 +1,16 @@
 <style scoped>
   .layout {
     border: 1px solid #d7dde4;
-    background: #f5f7f9;
+    background: #f5f7f9
   }
 
   .token-sell {
-    padding: 3%;
+    padding: 3%
   }
 
   .action-button {
     margin-right: 2rem;
-    margin-left: 2rem;
+    margin-left: 2rem
   }
 </style>
 <template>
@@ -62,7 +62,7 @@
       <Col span="24">
       <div class="layout-content token-sell">
         <h3>Token sell</h3>
-        <Form :model="formInline" :rules="ruleInline">
+        <Form ref="formInline" :model="formInline" :rules="ruleInline">
           <FormItem prop="token">
             <Input type="text" v-model="formInline.token" placeholder="token" min="1">
             <Icon type="ios-person-outline" slot="prepend"></Icon>
@@ -103,7 +103,7 @@
     data () {
       return {
         theme1: 'dark',
-        contractAddr: '0xf6e690b482ab44ad93190aafc048fea5d3d074dc',
+        contractAddr: '0x3fb7112fc3b266ff4532bbfe4130179c0397f690',
         tokenAddr: '0x221789a8263eb084a7f575b195190cc3373b0c7a',
         tokenOwner: '0x00a1537d251a6a4c4effAb76948899061FeA47b9',
         account: '',
@@ -159,11 +159,11 @@
               console.log('get token info', token)
               this.balance = `${token.balance || 0} ${token.symbol}`
               pls.getRoundCount(this.account, (err, result) => {
-                this.roundCount = result;
+                this.roundCount = result
                 let currentBat = localStorage.getItem(this.account + '-' + `${this.currentRound}`)
                 this.currentBat = currentBat === null ? null : JSON.parse(currentBat)
                 pls.getBetCount(this.account, (err, result) => {
-                  this.BetCount = result;
+                  this.BetCount = result
                   pls.getBatRevealed(this.currentRound, (err, result) => {
                     console.log('pls.getBatRevealed', this.currentRound, result)
                     this.Revealed = result
@@ -174,7 +174,7 @@
             })
             console.log('current account ', accounts)
           }
-        });
+        })
       },
       //owner send token to address
       handleSubmit(name) {
@@ -187,13 +187,13 @@
                 console.error(err)
               } else {
                 console.log('payToken over', result)
-                this.$Message.success('Success!');
+                this.$Message.success('Success!')
                 this.refreshAccounts()
               }
             })
           } else {
             this.spinShow = false
-            this.$Message.error('Fail!');
+            this.$Message.error('Fail!')
           }
         })
       },
@@ -201,13 +201,13 @@
         switch (name) {
           case 'review':
             this.reviewBat()
-            break;
+            break
           case 'odd':
             this.startRound('odd')
-            break;
+            break
           case 'even':
             this.startRound('even')
-            break;
+            break
         }
       },
       //open new pls
