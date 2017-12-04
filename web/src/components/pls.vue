@@ -138,7 +138,7 @@
     methods: {
       init: function () {
         this.spinShow = true
-        this.axios.get('betGame.json').then(r => {
+        this.axios.get('static/betGame.json').then(r => {
           window.pls = new Pls('http://localhost:8545', this.contractAddr, r.data.betGame, this.tokenAddr, r.data.pls)
           this.refreshAccounts()
         }).catch(err => {
