@@ -1,99 +1,114 @@
 <style scoped>
   .layout {
-    border: 1px solid #d7dde4;
-    background: #f5f7f9
+    overflow: hidden;
+    height: 100%;
   }
 
-  .token-sell {
-    padding: 3%
+  .layout-content {
+    min-height: 400px;
+    margin: 4% 6% 4% 6%;
+    overflow: hidden;
+    background: #fff;
+    border-radius: 4px;
   }
 
-  .action-button {
-    margin-right: 2rem;
-    margin-left: 2rem
+  .layout-content-main {
+    padding: 10px;
+  }
+
+  .new-bet {
+    margin-right: 5px;
   }
 </style>
 <template>
   <div class="layout">
-    <Menu mode="horizontal" :theme="theme1" active-name="1" @on-select="menuAction">
-      <MenuItem name="bet">
-        <Icon type="ios-paper"></Icon>
-        Bet
-      </MenuItem>
-      <MenuItem name="review" v-if="!Revealed && currentBat">
-        <Icon type="ios-people"></Icon>
-        Review
-      </MenuItem>
-      <Submenu name="3">
-        <template slot="title">
-          <Icon type="stats-bars"></Icon>
-          New
-        </template>
-        <MenuGroup title="Bet">
-          <MenuItem name="odd">Odd</MenuItem>
-          <MenuItem name="even">Even</MenuItem>
-        </MenuGroup>
-      </Submenu>
-      <MenuItem name="4" v-if="account===tokenOwner">
-        <Icon type="ios-paper"></Icon>
-        Token
-      </MenuItem>
+    <div class="layout-content">
+      <div class="layout-content-main">
+        <Row>
+          <Col span="12">
+          <Card>
+            <p slot="title">User</p>
+            <p>Account : {{ account }}</p>
+            <p>Balance : {{ balance }}</p>
+          </Card>
+          </Col>
+          <Col span="12">
+          <Card>
+            <p slot="title">Bet Round</p>
+            <p>Current Round : {{ currentRound }}</p>
+            <p>All Rounds : {{ roundCount }}</p>
+          </Card>
+          </Col>
+          <Col span="24">
+          <Card>
+            <p slot="title">The Round</p>
+            <Button type="success" size="small" class="new-bet" @click="new_bet_modal = true">New Bet</Button>
+            <p>Revealed : {{ revealed | revealedStatus }}</p>
+            <Button type="info" size="small" class="new-bet" @click="reveale" v-if="!revealed && currentBet">Reveal Bet</Button>
+            <Button type="info" size="small" class="new-bet" @click="bet_modal = true" v-if="!revealed && currentBet===null">Bet this Round</Button>
+            <Button type="primary" size="small" v-if="revealed && currentBet" @click="settle()">Finalize THE BET</Button>
+          </Card>
+          </Col>
+        </Row>
+        <br/>
+        <br/>
+        <Row>
+          <Col span="3" push="10">
+          <Page :current="currentRound" :total="roundCount" :page-size="1" @on-change="changeRound" simple></Page>
+          </Col>
+        </Row>
+        <Row v-if="account===tokenOwner">
+          <Col span="24">
+          <div class="token-sell">
+            <h3>Token sell</h3>
+            <Form ref="formInline" :model="formInline" :rules="ruleInline">
+              <FormItem prop="address">
+                <Input type="text" v-model="formInline.address" placeholder="address">
+                <Icon type="ios-locked-outline" slot="prepend"></Icon>
+                </Input>
+              </FormItem>
+              <FormItem prop="token">
+                <Input type="text" v-model="formInline.token" placeholder="token" min="1">
+                <Icon type="ios-person-outline" slot="prepend"></Icon>
+                </Input>
+              </FormItem>
+              <FormItem>
+                <Button type="primary" @click="handleSubmit('formInline')">submit</Button>
+              </FormItem>
+            </Form>
+          </div>
+          </Col>
+        </Row>
+        <Modal v-model="new_bet_modal" title="Common Modal dialog box title">
+          <p slot="header" style="color:#55b6ff;text-align:center">
+            <Icon type="information-circled"></Icon>
+            <span>New Bet?</span>
+          </p>
+          <div style="text-align:center">
+            <p>Need to open a new game on the gambling game?</p>
+            <p>What's you choose?</p>
+          </div>
+          <div slot="footer">
+            <Button type="warning" size="large" :loading="modal_loading" @click="startRound('odd')">ODD</Button>
+            <Button type="error" size="large" :loading="modal_loading" @click="startRound('even')">EVEN</Button>
+          </div>
+        </Modal>
+        <Modal v-model="bet_modal" title="Common Modal dialog box title">
+          <p slot="header" style="color:#55b6ff;text-align:center">
+            <Icon type="information-circled"></Icon>
+            <span>Bet this Round?</span>
+          </p>
+          <div style="text-align:center">
+            <p>What's you choose?</p>
+          </div>
+          <div slot="footer">
+            <Button type="warning" size="large" :loading="modal_loading" @click="betWithRound('odd')">ODD</Button>
+            <Button type="error" size="large" :loading="modal_loading" @click="betWithRound('even')">EVEN</Button>
+          </div>
+        </Modal>
 
-    </Menu>
-    <Row>
-      <Col span="12">
-      <Card>
-        <p slot="title">Current User</p>
-        <p>Account : {{ account.substring(0,12) }}</p>
-        <p>balance : {{ balance }}</p>
-        <p>Revealed : {{ Revealed }}</p>
-      </Card>
-      </Col>
-      <Col span="12">
-      <Card>
-        <p slot="title">Bet Round</p>
-        <p>Current : {{ currentRound }}</p>
-        <p>Rounds : {{ roundCount }}</p>
-        <p>Bets : {{ BetCount }}</p>
-      </Card>
-      </Col>
-    </Row>
-    <Row v-if="account===tokenOwner">
-      <Col span="24">
-      <div class="layout-content token-sell">
-        <h3>Token sell</h3>
-        <Form ref="formInline" :model="formInline" :rules="ruleInline">
-          <FormItem prop="token">
-            <Input type="text" v-model="formInline.token" placeholder="token" min="1">
-            <Icon type="ios-person-outline" slot="prepend"></Icon>
-            </Input>
-          </FormItem>
-          <FormItem prop="address">
-            <Input type="text" v-model="formInline.address" placeholder="address">
-            <Icon type="ios-locked-outline" slot="prepend"></Icon>
-            </Input>
-          </FormItem>
-          <FormItem>
-            <Button type="primary" @click="handleSubmit('formInline')">submit</Button>
-          </FormItem>
-        </Form>
       </div>
-      </Col>
-    </Row>
-    <Row type="flex" class-name="action-button">
-      <Col span="24">
-      <Input v-model="currentRound" icon="ios-clock-outline" style="width: 200px" min="1"></Input>
-      <Button type="primary" v-if="currentBat===null && roundCount>1" size="large" @click="betWithRound('odd')">
-        Odd
-      </Button>
-      <Button type="primary" v-if="currentBat===null && roundCount>1" size="large" @click="betWithRound('even')">
-        Even
-      </Button>
-      <Button type="success" size="large" v-if="Revealed && currentBat" @click="settle()">
-        SETTLE THE BET
-      </Button>
-      </Col>
-    </Row>
+    </div>
     <Spin size="large" fix v-if="spinShow"></Spin>
   </div>
 </template>
@@ -106,34 +121,39 @@
         contractAddr: '0xa68b9077f266902104739b7e80b3789b428f5ca5',
         tokenAddr: '0x221789a8263eb084a7f575b195190cc3373b0c7a',
         tokenOwner: '0x00a1537d251a6a4c4effAb76948899061FeA47b9',
-        account: '',
+        modal_loading: false,
+        new_bet_modal: false,
+        bet_modal: false,
         spinShow: false,
+        revealed: false,
+        account: '',
         balance: 0,
         roundCount: 0,
-        BetCount: 0,
+        betCount: 0,
+        withdraw: false,
         currentRound: 1,
-        currentBat: null,
-        Revealed: false,
+        currentBet: null,
         finalizedBlock: 0,
         formInline: {
           token: '',
           address: ''
         },
         ruleInline: {
-          token: [
-            {required: true, message: 'Please fill in the token', trigger: 'blur'}
-          ],
-          address: [
-            {required: true, message: 'Please fill in the address.', trigger: 'blur'}
-          ]
+          token: [{required: true, message: 'Please fill in the token', trigger: 'blur'}],
+          address: [{required: true, message: 'Please fill in the address.', trigger: 'blur'}]
         }
       }
     },
     watch: {
-      currentRound: function (newRound) {
+      currentRound: function (round) {
         this.refreshAccounts()
-        console.log('currentRound', newRound)
+        console.log(round)
       },
+    },
+    filters: {
+      revealedStatus: function (status) {
+        return status === true ? 'over' : 'going'
+      }
     },
     methods: {
       init: function () {
@@ -142,8 +162,12 @@
           window.pls = new Pls('http://localhost:8545', this.contractAddr, r.data.betGame, this.tokenAddr, r.data.pls)
           this.refreshAccounts()
         }).catch(err => {
-          console.log(`error is ${err}`)
+          console.error(`error is ${err}`)
         })
+      },
+      changeRound: function (round) {
+        this.currentRound = round
+        this.refreshAccounts()
       },
       //get current account info
       refreshAccounts: function () {
@@ -153,38 +177,86 @@
             setTimeout(this.refreshAccounts, 1000)
           } else {
             this.account = accounts[0]
-            pls.getTokenInfo(this.account, (err, token) => {
-              if (err) {
-                console.log(err)
-              }
-              console.log('get token info', token)
-              this.balance = `${token.balance || 0} ${token.symbol}`
-              pls.getRoundCount(this.account, (err, result) => {
-                this.roundCount = result
-                let currentBat = localStorage.getItem(this.account + '-' + `${this.currentRound}`)
-                this.currentBat = currentBat === null ? null : JSON.parse(currentBat)
-                pls.getBetCount(this.account, (err, result) => {
-                  this.BetCount = result
-                  pls.getBatRevealed(this.currentRound, (err, result) => {
-                    console.log('pls.getBatRevealed', this.currentRound, result)
-                    this.Revealed = result
-                    if (this.Revealed == true) {
-                      pls.getRoundInfo(this.currentRound, (err, result) => {
-                        console.log('pls.getBatRevealed', this.currentRound, result)
-                        this.finalizedBlock = result.finalizedBlock
-                      })
-                    }
-                  })
-                  this.spinShow = false
-                })
-              })
+            let getToken = this.getToken(accounts[0])
+            let getRounds = this.getRounds(accounts[0])
+            let getBet = this.getBet(accounts[0])
+            let getRevealed = this.getRevealed()
+            let that = this
+            Promise.race([getToken, getRounds, getBet, getRevealed]).then(function (result) {
+              that.spinShow = false
+            }, function (error) {
+              console.error(error)
             })
-            console.log('current account ', accounts)
           }
         })
       },
+      getToken: function (account) {
+        let that = this
+        return new Promise(function (resolve, reject) {
+          pls.getTokenInfo(account, (err, token) => {
+            if (err) {
+              console.error(err)
+            }
+            that.balance = `${token.balance || 0} ${token.symbol}`
+            resolve(true)
+          })
+        })
+      },
+      getRounds: function (account) {
+        let that = this
+        return new Promise(function (resolve, reject) {
+          pls.getRoundCount(account, (err, result) => {
+            if (err) {
+              console.error(err)
+            } else {
+              that.roundCount = parseInt(result) - 1
+              let currentBet = localStorage.getItem(account + '-' + `${that.currentRound}`)
+              that.currentBet = currentBet === null ? null : JSON.parse(currentBet)
+              resolve(true)
+            }
+          })
+        })
+      },
+      getBet: function (account) {
+        let that = this
+        return new Promise(function (resolve, reject) {
+          pls.getBetCount(account, (err, result) => {
+            if (err) {
+              console.error(err)
+            } else {
+              that.betCount = result
+              resolve(true)
+            }
+          })
+        })
+      },
+      getRevealed: function () {
+        let that = this
+        return new Promise(function (resolve, reject) {
+          pls.getBetRevealed(that.currentRound, (err, result) => {
+            if (err) {
+              console.error(err)
+            } else {
+              that.revealed = result
+              console.log('getRevealed', result, that.currentRound)
+              pls.getRoundInfo(that.currentRound, (err, result) => {
+                that.finalizedBlock = result.finalizedBlock
+                if (result.finalizedBlock > 0) {
+                  pls.getWithdraw(that.account, (err, result) => {
+                    console.log('getWithdraw', result)
+                    that.withdraw = result
+                  });
+                }
+                resolve(true)
+              })
+            }
+          })
+        })
+      },
+
       //owner send token to address
-      handleSubmit(name) {
+      handleSubmit(name)
+      {
         this.$refs[name].validate((valid) => {
           if (valid) {
             this.spinShow = true
@@ -204,22 +276,10 @@
           }
         })
       },
-      menuAction: function (name) {
-        switch (name) {
-          case 'review':
-            this.reviewBat()
-            break
-          case 'odd':
-            this.startRound('odd')
-            break
-          case 'even':
-            this.startRound('even')
-            break
-        }
-      },
       //open new pls
       startRound: function (guess) {
         console.log('guess', guess)
+        this.new_bet_modal = false
         this.spinShow = true
         let guessResult = guess == 'odd'
         pls.SecretHash(this.account, guessResult, 'startRoundWithFirstBet', this.currentRound, (err, result) => {
@@ -230,7 +290,7 @@
             if (err) {
               console.error(err)
             }
-            localStorage.setItem(this.account + '-' + `${this.roundCount}`, JSON.stringify({'guess': guessResult, 'betId': this.BetCount}))
+            localStorage.setItem(this.account + '-' + `${this.roundCount}`, JSON.stringify({'guess': guessResult, 'betId': this.betCount}))
             this.refreshAccounts()
             console.log('bet success')
           })
@@ -240,6 +300,7 @@
       betWithRound: function (guess) {
         let guessResult = guess == 'odd'
         this.spinShow = true
+        this.bet_modal = false
         console.log(this.account, guessResult, 'betWithRound', this.currentRound)
         pls.SecretHash(this.account, guessResult, 'betWithRound', this.currentRound, (err, result) => {
           if (err) {
@@ -248,24 +309,25 @@
           pls.doBet(this.account, 1000, '0x' + result, (err, result) => {
             if (err) {
               console.error(err)
+            } else {
+              localStorage.setItem(this.account + '-' + `${this.currentRound}`, JSON.stringify({'guess': guessResult, 'betId': this.betCount}))
+              this.refreshAccounts()
+              console.log('bet success')
             }
-            localStorage.setItem(this.account + '-' + `${this.currentRound}`, JSON.stringify({'guess': guessResult, 'betId': this.BetCount}))
-            this.refreshAccounts()
-            console.log('bet success')
           })
         })
       },
-      reviewBat: function () {
+      reveale: function () {
         this.spinShow = true
-        if (this.currentBat === null) {
+        if (this.currentBet === null) {
           console.error('review error')
           return
         }
-        pls.reviewerBat(this.account, this.currentBat.betId, this.currentBat.guess, (err, result) => {
+        pls.reviewerBet(this.account, this.currentBet.betId, this.currentBet.guess, (err, result) => {
           if (err) {
+            this.spinShow = false
             console.error(err)
           } else {
-            console.log('reviewBat result ', result)
             this.refreshAccounts()
           }
         })
@@ -276,6 +338,7 @@
         if (this.finalizedBlock == 0) {
           pls.settleBet(this.currentRound, this.account, (err, result) => {
             if (err) {
+              this.spinShow = false
               console.error(err)
             }
             this.refreshAccounts()
@@ -283,6 +346,7 @@
         } else {
           pls.withdrawbet(this.account, (err, result) => {
             if (err) {
+              this.spinShow = false
               console.error(err)
             }
             this.refreshAccounts()
@@ -291,7 +355,8 @@
 
       },
     },
-    created(){
+    created()
+    {
       this.init()
     }
   }
