@@ -162,6 +162,7 @@ class Pls {
         console.error(err)
         return callback(err)
       }
+      console.log('betRevealed',info)
       return callback(err, info)
     })
   }

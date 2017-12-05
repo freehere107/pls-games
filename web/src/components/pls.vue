@@ -36,7 +36,7 @@
           <Card>
             <p slot="title">Bet Round</p>
             <p>Current Round : {{ currentRound }}</p>
-            <p>All Rounds : {{ roundCount }}</p>
+            <p>All Rounds : {{ roundCount<=1?0:roundCount-1 }}</p>
           </Card>
           </Col>
           <Col span="24">
@@ -54,7 +54,7 @@
         <br/>
         <Row>
           <Col span="3" push="10">
-          <Page :current="currentRound" :total="roundCount" :page-size="1" @on-change="changeRound" simple></Page>
+          <Page :current="currentRound" :total="roundCount<=1?0:roundCount-1" :page-size="1" @on-change="changeRound" simple></Page>
           </Col>
         </Row>
         <Row v-if="account===tokenOwner">
@@ -118,7 +118,7 @@
     data () {
       return {
         theme1: 'dark',
-        contractAddr: '0xa68b9077f266902104739b7e80b3789b428f5ca5',
+        contractAddr: '0xF399B93859A8a003708aA9cBAAE12D8e8B76591d',
         tokenAddr: '0x221789a8263eb084a7f575b195190cc3373b0c7a',
         tokenOwner: '0x00a1537d251a6a4c4effAb76948899061FeA47b9',
         modal_loading: false,
@@ -209,7 +209,7 @@
             if (err) {
               console.error(err)
             } else {
-              that.roundCount = parseInt(result) - 1
+              that.roundCount = parseInt(result)
               let currentBet = localStorage.getItem(account + '-' + `${that.currentRound}`)
               that.currentBet = currentBet === null ? null : JSON.parse(currentBet)
               resolve(true)
