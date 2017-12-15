@@ -9,6 +9,7 @@ There are some impoort parameters need to set:
 1. The total "betCount" that will happen in the round, which means the how many bets should be played for this round. The player who start a new round(room),and join with his bet can use "startRoundWithFirstBet". The suggested betCount for easy to find counter-party player, is just 2.
 
 2. The parameters of one round includes:
+
     a. _betCount, the count of the bets.
 
     b. _maxBetBlockCount, the max waiting bet count till finalizing the round, that is, anyone can finalize the round after "_maxBetBlockCount" from the first bet.
@@ -35,7 +36,8 @@ There are some impoort parameters need to set:
 
 1. 本轮将发生的总计“Bet”个数，这意味着本轮应有多少次Bet。开始新一轮（房间）并参与其投注的玩家可以使用“startRoundWithFirstBet”。建议betCount容易找到对方球员，只有2。
 
-2. 一轮参数包括：
+2. 一轮参数包括:
+
     a. _betCount，bets的个数或席位个数。
 
     b. _maxBetBlockCount，最大等待bet数直到最后一轮，也就是说，任何人都可以在第一次bet之后的“_maxBetBlockCount”之后完成回合。
