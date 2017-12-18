@@ -157,11 +157,11 @@ class Pls {
         console.error(err)
         return callback(err)
       }
-      return this.withdrawbet(account, callback)
+      return this.withdrawBet(account, callback)
     })
   }
 
-  withdrawbet(account, callback) {
+  withdrawBet(account, callback) {
     return this.contract.methods.withdraw().send({from: account}, (err, info) => {
       if (err) {
         console.error(err)

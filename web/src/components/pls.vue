@@ -19,53 +19,61 @@
   .new-bet {
     margin-right: 5px;
   }
+
+  a:link {
+    color: #000000;
+    text-decoration: none;
+  }
+  a:visited {
+    color: #000000;
+    text-decoration: none;
+  }
+  a:hover {
+    color: #999999;
+    text-decoration: underline;
+  }
 </style>
 <template>
   <div class="layout">
     <div class="layout-content">
       <div class="layout-content-main">
         <Row>
-          <Col span="24">
-          <Card>
-            <p slot="title">PLS Game Desc</p>
-            <li>Select the `New Bet` button to start a new game</li>
-            <li>Select the `Bet this Round` button and the ongoing bet to start the game</li>
-            <li>The game needs 1000 PLS for each game, you can go <a href="https://etherdelta.com/#0x221789a8263eb084a7f575b195190cc3373b0c7a-ETH" target="_blank">Etherdelta</a> to buy PLS in Kovan test network </li>
-          </Card>
-          </Col>
           <Col span="12">
           <Card>
-            <p slot="title">User</p>
+            <a slot="title" href="javascript:void(0)">User</a>
             <p>Account : {{ account }}</p>
             <p>Balance : {{ balance }}</p>
           </Card>
           </Col>
           <Col span="12">
           <Card>
-            <p slot="title">Bet Round</p>
+            <a slot="title" v-on:click="desc_modal = true" href="javascript:void(0)" class="bet-round">Bet Round
+              <i class="ivu-icon ivu-icon-ios-information-outline"></i>
+            </a>
             <p>Current Round : {{ currentRound }}</p>
             <p>All Rounds : {{ roundCount<=1?0:roundCount-1 }}</p>
           </Card>
           </Col>
-          <Col span="16">
-          <Card>
-            <p slot="title">Rounds Choose</p>
-            <Button type="success" size="small" class="new-bet" @click="changeRound(n)"  v-for="n in roundCount<=1?0:roundCount-1>10?10:roundCount-1">
-              Round {{ n + currentPage*10 }}</Button>
-            <br>
-            <br>
-          </Card>
-          </Col>
-          <Col span="8">
+          <Col span="24">
           <Card>
             <p slot="title">Current Round Information</p>
             <Button type="success" size="small" class="new-bet" @click="new_bet_modal = true">New Bet</Button>
-            <p>Revealed : {{ revealed | revealedStatus }}</p>
             <Button type="info" size="small" class="new-bet" @click="reveale" v-if="!revealed && currentBet">Reveal Bet</Button>
             <Button type="info" size="small" class="new-bet" @click="bet_modal = true" v-if="!revealed && currentBet===null">Bet this Round</Button>
             <Button type="primary" size="small" v-if="revealed && currentBet" @click="settle()">Finalize THE BET</Button>
           </Card>
           </Col>
+          <Col span="24">
+          <Card>
+            <p slot="title">Rounds Choose</p>
+            <Button type="success" size="small" class="new-bet" @click="changeRound(n)" v-for="n in roundCount<=1?0:roundCount-1>10?10:roundCount-1">
+              Round {{ n + currentPage*10 }}
+            </Button>
+            <br>
+            <br>
+          </Card>
+          </Col>
+
         </Row>
         <br/>
         <Row>
@@ -90,7 +98,7 @@
                 </Input>
               </FormItem>
               <FormItem style="margin-bottom: 0;">
-                <Button type="primary" @click="handleSubmit('formInline')" >submit</Button>
+                <Button type="primary" @click="handleSubmit('formInline')">submit</Button>
               </FormItem>
             </Form>
           </div>
@@ -123,6 +131,37 @@
             <Button type="error" size="large" :loading="modal_loading" @click="betWithRound('even')">EVEN</Button>
           </div>
         </Modal>
+        <Modal v-model="desc_modal" title="Rules of Bet Game" width="900">
+          <p>Bet Game is separated to a list of rounds, for every round, every player will join in by putting an bet here, the contract will automatically calculate a game result according to the secret of these bets, which is an odd or an even, according the sum of the secrets of the bets. Every player will get reward according to their guess settings in the origin bet, they will win and get reward if they guess the right answer, otherwise they will lose.</p>
+          <br/>
+          <p>Every one can trigger the round finalization action once all bets are full filled and all bets are revealed. But if someone forget to reveal the bet in specific time(there will one round parameter controlling this: _maxRevealBlockCount), the round will fail to reveal, the funds of the players who revealed will be returned back, but the funds of players who didn't reveal in time will be punished and be confiscated to the finalizer and contract owner.</p>
+          <br/>
+          <p>There are some import parameters need to set:</p>
+          <br/>
+          <ul>
+            <li>1. The total "betCount" that will happen in the round, which means the how many bets should be played for this round. The player who start a new round(room),and join with his bet can use "startRoundWithFirstBet". The suggested betCount for easy to find counter-party player, is just 2.</li>
+            <br/>
+            <li>2. The parameters of one round includes:
+              <ul>
+                <li>&nbsp&nbsp a. _betCount, the count of the bets.</li>
+                <li>&nbsp&nbsp b. _maxBetBlockCount, the max waiting bet count till finalizing the round, that is, anyone can finalize the round after "_maxBetBlockCount" from the first bet.</li>
+                <li>&nbsp&nbsp c. _maxRevealBlockCount, not implemented, supposed to be the max waiting reveal block count till finalizing the round, that is, anyone can finalize the round after "_maxRevealBlockCount" from the last bet block.</li>
+                <li>&nbsp&nbsp d. _secretHashForFirstBet, this is the hash of the guess and secret settled by the player, which is also the result of "calculateSecretHash(uint _nonce, bool _guessOdd, bytes32 _secret)", the "nonce" here is just a random number. The "_guessOdd"</li>
+              </ul>
+            </li>
+            <br/>
+            <li>3. After some round are created, other players can join that room, and full fill one of the left bets positions with their guess and secret settings.</li>
+            <br/>
+            <li>4. After all the bet positions are full filled by the players, then the process of secret revealing begins. Every player of bets in this round are required to reveal their bets. The bet secrets(nonce, guess, secret) are actually stored in user's end browser. so they just click the reveal to send transactions.</li>
+            <br/>
+            <li>5. After all the bet are revealed (in revealed status), then any player or any one can trigger to finalize the round to see the result to check whether they win or not. But if the bet are not revealed and the block of (_maxRevealBlockCount) arrived, any one can trigger to cancel this round, players who revealed their bets will get refunded, but those who didn't will lose their funds.</li>
+            <br/>
+            <li>6. The round ends.</li>
+            <br/>
+          </ul>
+          <p>Tip: The game needs 1000 PLS for each game, you can go <a href="https://etherdelta.com/#0x221789a8263eb084a7f575b195190cc3373b0c7a-ETH"
+                                                                       target="_blank">Etherdelta</a> to buy PLS in Kovan test network</p>
+        </Modal>
 
       </div>
     </div>
@@ -141,6 +180,7 @@
         modal_loading: false,
         new_bet_modal: false,
         bet_modal: false,
+        desc_modal: true,
         spinShow: false,
         revealed: false,
         account: '',
@@ -189,7 +229,7 @@
       },
       changePage: function (page) {
         this.currentPage = page
-        console.log('changePage',page)
+        console.log('changePage', page)
       },
       //get current account info
       refreshAccounts: function () {
@@ -262,6 +302,7 @@
               that.revealed = result
               console.log('getRevealed', result, that.currentRound)
               pls.getRoundInfo(that.currentRound, (err, result) => {
+                console.log('getRoundInfo', result)
                 that.finalizedBlock = result.finalizedBlock
                 if (result.finalizedBlock > 0) {
                   pls.getWithdraw(that.account, (err, result) => {
@@ -282,7 +323,7 @@
         this.$refs[name].validate((valid) => {
           if (valid) {
             this.spinShow = true
-            if (this.account===this.tokenOwner){
+            if (this.account === this.tokenOwner) {
               pls.mintToken(this.account, this.formInline.address, this.formInline.token, (err, result) => {
                 if (err) {
                   this.spinShow = false
@@ -293,7 +334,7 @@
                   this.refreshAccounts()
                 }
               })
-            }else{
+            } else {
               pls.transToken(this.account, this.formInline.address, this.formInline.token, (err, result) => {
                 if (err) {
                   this.spinShow = false
@@ -379,7 +420,7 @@
             this.refreshAccounts()
           })
         } else {
-          pls.withdrawbet(this.account, (err, result) => {
+          pls.withdrawBet(this.account, (err, result) => {
             if (err) {
               this.spinShow = false
               console.error(err)
