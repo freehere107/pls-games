@@ -6,7 +6,7 @@
 
   .layout-content {
     min-height: 400px;
-    margin: 4% 6% 4% 6%;
+    margin: 0 6% 4% 6%;
     overflow: hidden;
     background: #fff;
     border-radius: 4px;
@@ -25,6 +25,14 @@
     <div class="layout-content">
       <div class="layout-content-main">
         <Row>
+          <Col span="24">
+          <Card>
+            <p slot="title">PLS Game Desc</p>
+            <li>Select the `New Bet` button to start a new game</li>
+            <li>Select the `Bet this Round` button and the ongoing bet to start the game</li>
+            <li>The game needs 1000 PLS for each game, you can go <a href="https://etherdelta.com/#0x221789a8263eb084a7f575b195190cc3373b0c7a-ETH" target="_blank">Etherdelta</a> to buy PLS in Kovan test network </li>
+          </Card>
+          </Col>
           <Col span="12">
           <Card>
             <p slot="title">User</p>
@@ -39,9 +47,18 @@
             <p>All Rounds : {{ roundCount<=1?0:roundCount-1 }}</p>
           </Card>
           </Col>
-          <Col span="24">
+          <Col span="16">
           <Card>
-            <p slot="title">The Round</p>
+            <p slot="title">Rounds Choose</p>
+            <Button type="success" size="small" class="new-bet" @click="changeRound(n)"  v-for="n in roundCount<=1?0:roundCount-1>10?10:roundCount-1">
+              Round {{ n + currentPage*10 }}</Button>
+            <br>
+            <br>
+          </Card>
+          </Col>
+          <Col span="8">
+          <Card>
+            <p slot="title">Current Round Information</p>
             <Button type="success" size="small" class="new-bet" @click="new_bet_modal = true">New Bet</Button>
             <p>Revealed : {{ revealed | revealedStatus }}</p>
             <Button type="info" size="small" class="new-bet" @click="reveale" v-if="!revealed && currentBet">Reveal Bet</Button>
@@ -51,16 +68,16 @@
           </Col>
         </Row>
         <br/>
-        <br/>
         <Row>
           <Col span="3" push="10">
-          <Page :current="currentRound" :total="roundCount<=1?0:roundCount-1" :page-size="1" @on-change="changeRound" simple></Page>
+          <Page :current="currentRound" :total="roundCount<=1?0:roundCount-1" :page-size="10" @on-change="changePage" simple></Page>
           </Col>
         </Row>
-        <Row v-if="account===tokenOwner">
+        <Row>
           <Col span="24">
           <div class="token-sell">
-            <h3>Token sell</h3>
+            <h3 v-if="account===tokenOwner">Token Mint</h3>
+            <h3 v-if="account!=tokenOwner">Token Transfer</h3>
             <Form ref="formInline" :model="formInline" :rules="ruleInline">
               <FormItem prop="address">
                 <Input type="text" v-model="formInline.address" placeholder="address">
@@ -72,8 +89,8 @@
                 <Icon type="ios-person-outline" slot="prepend"></Icon>
                 </Input>
               </FormItem>
-              <FormItem>
-                <Button type="primary" @click="handleSubmit('formInline')">submit</Button>
+              <FormItem style="margin-bottom: 0;">
+                <Button type="primary" @click="handleSubmit('formInline')" >submit</Button>
               </FormItem>
             </Form>
           </div>
@@ -134,6 +151,7 @@
         currentRound: 1,
         currentBet: null,
         finalizedBlock: 0,
+        currentPage: 0,
         formInline: {
           token: '',
           address: ''
@@ -168,6 +186,10 @@
       changeRound: function (round) {
         this.currentRound = round
         this.refreshAccounts()
+      },
+      changePage: function (page) {
+        this.currentPage = page
+        console.log('changePage',page)
       },
       //get current account info
       refreshAccounts: function () {
@@ -260,16 +282,29 @@
         this.$refs[name].validate((valid) => {
           if (valid) {
             this.spinShow = true
-            pls.buyToken(this.account, this.formInline.address, this.formInline.token, (err, result) => {
-              if (err) {
-                this.spinShow = false
-                console.error(err)
-              } else {
-                console.log('payToken over', result)
-                this.$Message.success('Success!')
-                this.refreshAccounts()
-              }
-            })
+            if (this.account===this.tokenOwner){
+              pls.mintToken(this.account, this.formInline.address, this.formInline.token, (err, result) => {
+                if (err) {
+                  this.spinShow = false
+                  console.error(err)
+                } else {
+                  console.log('payToken over', result)
+                  this.$Message.success('Success!')
+                  this.refreshAccounts()
+                }
+              })
+            }else{
+              pls.transToken(this.account, this.formInline.address, this.formInline.token, (err, result) => {
+                if (err) {
+                  this.spinShow = false
+                  console.error(err)
+                } else {
+                  console.log('transToken over', result)
+                  this.$Message.success('Success!')
+                  this.refreshAccounts()
+                }
+              })
+            }
           } else {
             this.spinShow = false
             this.$Message.error('Fail!')

@@ -99,7 +99,7 @@ class Pls {
     })
   }
 
-  buyToken(account, to, deposit, callback) {//购买token
+  mintToken(account, to, deposit, callback) {//token mint
     let confirm = 20
     return this.token.methods.mint(to, this.web3.utils.toWei(`${deposit}`, "ether")).send({from: account})
       .on('transactionHash', function (hash) {
@@ -113,6 +113,22 @@ class Pls {
       })
       .on('error', console.error)
   }
+
+  transToken(account, to, deposit, callback) {//token mint
+    let confirm = 20
+    return this.token.methods.transferFrom(account, to, this.web3.utils.toWei(`${deposit}`, "ether")).send({from: account})
+      .on('transactionHash', function (hash) {
+      })
+      .on('receipt', function (receipt) {
+      })
+      .on('confirmation', function (confirmationNumber, receipt) {
+        if (confirmationNumber == confirm) {
+          return callback(null, receipt)
+        }
+      })
+      .on('error', console.error)
+  }
+
 
   getRoundCount(account, callback) {
     return this.contract.methods.roundCount().call({from: account}, (err, info) => {
@@ -162,7 +178,7 @@ class Pls {
         console.error(err)
         return callback(err)
       }
-      console.log('betRevealed',info)
+      console.log('betRevealed', info)
       return callback(err, info)
     })
   }
