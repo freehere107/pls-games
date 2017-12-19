@@ -219,6 +219,10 @@ contract BetGame is DSStop {
         secretHash = keccak256(_nonce, _guessOdd, _secret);
     }
     
+    function getBetIds(uint roundIndex) public constant returns (uint[] _betIds)
+    {
+        return rounds[roundIndex].betIds;
+    }
 
     function getBetIdAtRound(uint roundIndex, uint innerIndex) constant public returns (uint) {
         return rounds[roundIndex].betIds[innerIndex];
@@ -292,7 +296,7 @@ contract BetGame is DSStop {
         return betsRevealed;
     }
     
-    function getJackpotResults(uint roundId) constant internal returns(uint, uint, bool)
+    function getJackpotResults(uint roundId) constant public returns(uint, uint, bool)
     {
         uint jackpotSum;
         uint jackpotNum;
