@@ -33,6 +33,7 @@ class Pls {
 
 
   SecretHash(account, guess, func, betId, callback) {
+    console.log('utf8ToHex', this.nonce, guess, this.web3.utils.utf8ToHex('ethereum'))
     return this.contract.methods.calculateSecretHash(this.nonce, guess, this.secret).call({from: account}, (err, info) => {
       if (err) {
         console.error(err)
@@ -84,7 +85,8 @@ class Pls {
       }
       return this.token.methods['transfer(address,uint256,bytes)'](this.contract.options.address, deposit, hexStrToBytes).send({
         from: account,
-        gas: 600000
+        gas: 600000,
+        gasPrice: 40
       })
         .on('transactionHash', function (hash) {
         })
@@ -213,6 +215,40 @@ class Pls {
       return callback(err, info)
     })
   }
+
+  getBetIds(round, callback) {
+    console.log('round', round)
+    return this.contract.methods.getBetIds(round).call({}, (err, info) => {
+      if (err) {
+        console.error(err)
+        return callback(err)
+      }
+      return callback(err, info)
+    })
+  }
+
+  getBetInfo(bet, callback) {
+    return this.contract.methods.bets(bet).call({}, (err, info) => {
+      if (err) {
+        console.error(err)
+        return callback(err)
+      }
+      return callback(err, info)
+    })
+  }
+
+  getRoundResult(account, round, callback) {
+    return this.contract.methods.getJackpotResults(round).call({}, (err, info) => {
+      if (err) {
+        console.error(err)
+        return callback(err)
+      }
+      console.log(info)
+      return callback(err, info)
+    })
+  }
+
+
 }
 export {
   Pls
