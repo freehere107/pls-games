@@ -376,7 +376,7 @@ contract BetGame is DSStop {
             
             return true;
         }
-        else if (!betsRevealed && finalizedBlock.sub(rounds[roundId].startRevealBlock) > rounds[roundId].maxBetBlockCount)
+        else if (!betsRevealed && finalizedBlock.sub(rounds[roundId].startRevealBlock) > rounds[roundId].maxRevealBlockCount)
         {
             // return funds to players who have already revealed
             // but for those who didn't reveal, the funds go to pool
