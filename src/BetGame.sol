@@ -221,7 +221,10 @@ contract BetGame is DSStop {
     
     function getBetIds(uint roundIndex) public constant returns (uint[] _betIds)
     {
-        return rounds[roundIndex].betIds;
+        _betIds = new uint[](rounds[roundIndex].betIds.length);
+
+        for (uint i=0; i < rounds[roundIndex].betIds.length; i++)
+            _betIds[i] = rounds[roundIndex].betIds[i];
     }
 
     function getBetIdAtRound(uint roundIndex, uint innerIndex) constant public returns (uint) {
