@@ -71,12 +71,14 @@
             <p slot="title">Rounds Choose</p>
             <i-circle :percent="100" v-for="(value,key) in roundCount <= 1 ? 0 : roundCount - 1">
               <h4> Round {{ value }}</h4>
-              <a v-for="(item,index) in roundsInfo[value]" v-on:click="showBet(item)">
-                <i class="ivu-icon ivu-icon-person"></i>
-                P{{ index+1 }}
-              </a>
+              <div v-if="roundsInfo[value]">
+                <a v-for="(item,index) in roundsInfo[value]['bet_ids']" v-on:click="showBet(item)">
+                  <i class="ivu-icon ivu-icon-person"></i>
+                  P{{ index+1 }}
+                </a>
+              </div>
               <br>
-              <span class="demo-Circle-inner" style="font-size:12px">Status</span>
+              <span class="demo-Circle-inner" style="font-size:12px">status {{ roundsInfo|status }} </span>
             </i-circle>
             <br>
             <br>
@@ -221,6 +223,13 @@
     filters: {
       revealedStatus: function (status) {
         return status === true ? 'over' : 'going'
+      },
+      status: function (data) {
+        if (data) {
+          return data.finalizedBlock > 0 ? 'Over' : data.startRevealBlock > 0 ? 'Going' : 'Reveal'
+        } else {
+          return 'going'
+        }
       }
     },
     methods: {
@@ -490,8 +499,8 @@
             console.error(err)
           } else {
             this.$Modal.info({
-              title: 'bet info', content: '<p>' + 'player:' + bet.player + '</p>' + '<br>'
-              + '<p>' + 'guess:' + bet.guess === true ? 'odd' : 'even' + '</p>'
+              title: 'bet info',
+              content: '<p>player:' + bet.player + '</p><br><p>guess:' + 'even' + '</p>'
             });
             console.log('bet info ', bet)
           }

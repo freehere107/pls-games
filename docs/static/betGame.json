@@ -384,6 +384,52 @@
       "constant": true,
       "inputs": [
         {
+          "name": "roundId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getJackpotResults",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "roundIndex",
+          "type": "uint256"
+        }
+      ],
+      "name": "getBetIds",
+      "outputs": [
+        {
+          "name": "_betIds",
+          "type": "uint256[]"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
           "name": "roundIndex",
           "type": "uint256"
         },
