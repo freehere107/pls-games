@@ -152,7 +152,7 @@
             <Button type="error" size="large" :loading="modal_loading" @click="betWithRound('even')">EVEN</Button>
           </div>
         </Modal>
-        <Modal v-model="desc_modal" title="Rules of Bet Game" width="900" cancel-text="">
+        <Modal v-model="desc_modal" title="Rules of Bet Game (Please use chrome and  metamask Plug-ins)" width="900" cancel-text="">
           <p>Bet Game is separated to a list of rounds, for every round, every player will join in by putting an bet here, the contract will automatically calculate a game result according to the secret of these bets, which is an odd or an even, according the sum of the secrets of the bets. Every player will get reward according to their guess settings in the origin bet, they will win and get reward if they guess the right answer, otherwise they will lose.</p>
           <br/>
           <p>Every one can trigger the round finalization action once all bets are full filled and all bets are revealed. But if someone forget to reveal the bet in specific time(there will one round parameter controlling this: _maxRevealBlockCount), the round will fail to reveal, the funds of the players who revealed will be returned back, but the funds of players who didn't reveal in time will be punished and be confiscated to the finalizer and contract owner.</p>
