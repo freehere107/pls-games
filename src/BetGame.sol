@@ -14,10 +14,8 @@ contract BetGame is DSStop {
         uint256 amount;
         uint roundId;
 
-        // flag
-        bool isRevealed;
-
-        // reveal time
+        // secret and reveal
+        bool isRevealed;    // flag
         uint nonce;
         bool guessOdd;
         bytes32 secret;
@@ -25,14 +23,12 @@ contract BetGame is DSStop {
 
     struct Round {
         uint betCount;
-        uint maxBetBlockCount;      // Max Block Count for wating others to join betting, will return funds if no enough bets join in.
-        uint maxRevealBlockCount;   // Should have enough minimal blocks e.g. >100
-
         uint[] betIds;
 
         uint startBetBlock;
         uint startRevealBlock;
-
+        uint maxBetBlockCount;      // Max Block Count for wating others to join betting, will return funds if no enough bets join in.
+        uint maxRevealBlockCount;   // Should have enough minimal blocks e.g. >100
         uint finalizedBlock;
     }
 
@@ -44,9 +40,7 @@ contract BetGame is DSStop {
     mapping(address => uint) public balancesForWithdraw;
 
     uint public poolAmount;
-
     uint256 public initializeTime;
-
     PLS public pls;
 
     struct TokenMessage {
