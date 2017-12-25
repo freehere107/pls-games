@@ -1,7 +1,7 @@
 pragma solidity ^0.4.13;
 
 import "ds-stop/stop.sol";
-import "play-dapp/PLS.sol";
+import "erc20/erc20.sol";
 import "./SafeMath.sol";
 
 contract BetGame is DSStop {
@@ -14,10 +14,8 @@ contract BetGame is DSStop {
         uint256 amount;
         uint roundId;
 
-        // flag
-        bool isRevealed;
-
-        // reveal time
+        // secret and reveal
+        bool isRevealed;    // flag
         uint nonce;
         bool guessOdd;
         bytes32 secret;
@@ -25,14 +23,12 @@ contract BetGame is DSStop {
 
     struct Round {
         uint betCount;
-        uint maxBetBlockCount;      // Max Block Count for wating others to join betting, will return funds if no enough bets join in.
-        uint maxRevealBlockCount;   // Should have enough minimal blocks e.g. >100
-
         uint[] betIds;
 
         uint startBetBlock;
         uint startRevealBlock;
-
+        uint maxBetBlockCount;      // Max Block Count for wating others to join betting, will return funds if no enough bets join in.
+        uint maxRevealBlockCount;   // Should have enough minimal blocks e.g. >100
         uint finalizedBlock;
     }
 
@@ -44,10 +40,8 @@ contract BetGame is DSStop {
     mapping(address => uint) public balancesForWithdraw;
 
     uint public poolAmount;
-
     uint256 public initializeTime;
-
-    PLS public pls;
+    ERC20 public pls;
 
     struct TokenMessage {
         bool init;
@@ -75,7 +69,16 @@ contract BetGame is DSStop {
         initializeTime = now;
         roundCount = 1;
 
-        pls = PLS(_pls);
+        pls = ERC20(_pls);
+    }
+
+    function onTokenTransfer(address _from, address _to, uint _amount) public returns (bool) {
+        if (_to == address(this))
+        {
+            if (stopped) return false;
+        }
+
+        return true;
     }
 
     function receiveToken(address from, uint256 _amount, address _token) public
@@ -86,6 +89,7 @@ contract BetGame is DSStop {
     function tokenFallback(address _from, uint256 _value, bytes _data) public
     {
         require(msg.sender == address(pls));
+        require(!stopped);
         tokenMsg.init = true;
         tokenMsg.fallbackFrom = _from;
         tokenMsg.fallbackValue = _value;
@@ -112,19 +116,6 @@ contract BetGame is DSStop {
         roundId = addRound(_betCount, _maxBetBlockCount, _maxRevealBlockCount, betId);
     }
 
-    function isPlayerInRound(uint _roundId, address _player) public constant returns (bool isIn)
-    {
-        for (uint i=0; i < rounds[_roundId].betIds.length; i++) {
-            if (bets[rounds[_roundId].betIds[i]].player == _player)
-            {
-                isIn = true;
-                return;
-            }  
-        }
-
-        isIn = false;
-    }
-
     function betWithRound(uint _roundId, bytes32 _secretHashForBet) public tokenPayable
     {
         require(tokenMsg.fallbackValue > 0);
@@ -139,9 +130,12 @@ contract BetGame is DSStop {
         if (rounds[_roundId].betIds.length == rounds[_roundId].betCount)
         {
             rounds[_roundId].startRevealBlock = getBlockNumber();
+
+            RoundRevealStarted(_roundId, rounds[_roundId].startRevealBlock);
         }
     }
 
+    // anyone can try to reveal the bet
     function revealBet(uint betId, uint _nonce, bool _guessOdd, bytes32 _secret) public returns (bool)
     {
         Bet bet = bets[betId];
@@ -166,32 +160,50 @@ contract BetGame is DSStop {
     function finalizeRound(uint roundId) public
     {
         require(rounds[roundId].finalizedBlock == 0);
-
         uint finalizedBlock = getBlockNumber();
         
         uint i = 0;
         Bet bet;
-        
         if (rounds[roundId].betIds.length < rounds[roundId].betCount && finalizedBlock.sub(rounds[roundId].startBetBlock) > rounds[roundId].maxBetBlockCount)
         {
-            // betting timeout
-            // return funds to players
-
+            // return funds to players if betting timeout
             for (i=0; i<rounds[roundId].betIds.length; i++) {
                 bet = bets[rounds[roundId].betIds[i]];
                 balancesForWithdraw[bet.player] = balancesForWithdraw[bet.player].add(bet.amount);
             }
-
-            rounds[roundId].finalizedBlock = finalizedBlock;
-            return;
         } else if (rounds[roundId].betIds.length == rounds[roundId].betCount) {
-            assert( calculateJackpotInFinalize(roundId) );
+            bool betsRevealed = betRevealed(roundId);
+            if (!betsRevealed && finalizedBlock.sub(rounds[roundId].startRevealBlock) > rounds[roundId].maxRevealBlockCount)
+            {
+                // return funds to players who have already revealed
+                // but for those who didn't reveal, the funds go to pool
+                // revealing timeout
+                for (i = 0; i < rounds[roundId].betIds.length; i++) {
+                    if (bets[rounds[roundId].betIds[i]].isRevealed)
+                    {
+                        balancesForWithdraw[bets[rounds[roundId].betIds[i]].player] = balancesForWithdraw[bets[rounds[roundId].betIds[i]].player].add(bets[rounds[roundId].betIds[i]].amount);
+                    } else
+                    {
+                        // go to pool
+                        poolAmount = poolAmount.add(bets[rounds[roundId].betIds[i]].amount);
+                    }
+                }
+            } else if (betsRevealed)
+            {
+                uint dustLeft = finalizeRewardForRound(roundId);
+                poolAmount = poolAmount.add(dustLeft);
+            } else
+            {
+                throw;
+            }
 
-            rounds[roundId].finalizedBlock = finalizedBlock;
         } else
         {
             throw;
         }
+
+        rounds[roundId].finalizedBlock = finalizedBlock;
+        RoundFinalized(roundId);
     }
 
     function withdraw() public returns (bool)
@@ -223,6 +235,19 @@ contract BetGame is DSStop {
     {
         secretHash = keccak256(_nonce, _guessOdd, _secret);
     }
+
+    function isPlayerInRound(uint _roundId, address _player) public constant returns (bool isIn)
+    {
+        for (uint i=0; i < rounds[_roundId].betIds.length; i++) {
+            if (bets[rounds[_roundId].betIds[i]].player == _player)
+            {
+                isIn = true;
+                return;
+            }
+        }
+
+        isIn = false;
+    }
     
     function getBetIds(uint roundIndex) public constant returns (uint[] _betIds)
     {
@@ -238,6 +263,55 @@ contract BetGame is DSStop {
 
     function getBetSizeAtRound(uint roundIndex) constant public returns (uint) {
         return rounds[roundIndex].betIds.length;
+    }
+
+    function betRevealed(uint roundId) constant public returns(bool)
+    {
+        bool betsRevealed = true;
+        uint i = 0;
+        Bet bet;
+        for (i=0; i<rounds[roundId].betIds.length; i++) {
+            bet = bets[rounds[roundId].betIds[i]];
+            if (!bet.isRevealed)
+            {
+                betsRevealed = false;
+                break;
+            }
+        }
+        
+        return betsRevealed;
+    }
+    
+    function getJackpotResults(uint roundId) constant public returns(uint, uint, bool)
+    {
+        uint jackpotSum;
+        uint jackpotSecret;
+        uint oddSum;
+
+        uint i = 0;
+        for (i=0; i<rounds[roundId].betIds.length; i++) {
+            jackpotSum = jackpotSum.add(bets[rounds[roundId].betIds[i]].amount);
+            jackpotSecret = jackpotSecret.add(uint(bets[rounds[roundId].betIds[i]].secret));
+            
+            if( bets[rounds[roundId].betIds[i]].guessOdd ){
+                oddSum = oddSum.add(bets[rounds[roundId].betIds[i]].amount);
+            }
+        }
+        
+        bool isOddWin = (jackpotSecret % 2 == 1);
+
+        // all is odd, or all is not odd
+        if (oddSum == 0 || oddSum == jackpotSum)
+        {
+            isOddWin = oddSum > 0 ? true : false;
+        }
+        
+        return (jackpotSum, oddSum, isOddWin);
+    }
+
+    /// @notice This function is overridden by the test Mocks.
+    function getBlockNumber() internal constant returns (uint256) {
+        return block.number;
     }
 
     /*
@@ -285,58 +359,10 @@ contract BetGame is DSStop {
 
         roundCount += 1;
         RoundSubmission(roundId);
+        RoundBetStarted(roundId, rounds[roundId].startBetBlock);
     }
     
-    function betRevealed(uint roundId) constant public returns(bool)
-    {
-        bool betsRevealed = true;
-        uint i = 0;
-        Bet bet;
-        for (i=0; i<rounds[roundId].betIds.length; i++) {
-            bet = bets[rounds[roundId].betIds[i]];
-            if (!bet.isRevealed)
-            {
-                betsRevealed = false;
-                break;
-            }
-        }
-        
-        return betsRevealed;
-    }
-    
-    function getJackpotResults(uint roundId) constant public returns(uint, uint, bool)
-    {
-        uint jackpotSum;
-        uint jackpotNum;
-
-        uint oddCount;
-        uint oddSum;
-
-        uint i = 0;
-        
-        for (i=0; i<rounds[roundId].betIds.length; i++) {
-            jackpotSum = jackpotSum.add(bets[rounds[roundId].betIds[i]].amount);
-            jackpotNum = jackpotNum.add(uint(bets[rounds[roundId].betIds[i]].secret));
-            
-            if(bets[rounds[roundId].betIds[i]].guessOdd){
-                oddCount++;
-                oddSum = oddSum.add(bets[rounds[roundId].betIds[i]].amount);
-            }
-        }
-        
-        bool isOddWin = (jackpotNum % 2 == 1) ? true : false;
-        // uint winnerNumber = isOddWin ? oddCount: evenCount;
-
-        if (oddCount == 0 || oddCount == rounds[roundId].betIds.length)
-        {
-            // winnerNumber = oddCount > 0 ? oddCount : evenCount;
-            isOddWin = oddCount > 0 ? true : false;
-        }
-        
-        return (jackpotSum, oddSum, isOddWin);
-    }
-    
-    function updateRewardForBet(uint betId, bool isOddWin, uint jackpotSum, uint oddSum, uint evenSum, uint dustLeft) internal returns(uint)
+    function finalizeRewardForBet(uint betId, bool isOddWin, uint jackpotSum, uint oddSum, uint evenSum, uint dustLeft) internal returns(uint)
     {
         uint reward = 0;
         if (isOddWin && bets[betId].guessOdd)
@@ -354,63 +380,41 @@ contract BetGame is DSStop {
         return dustLeft;
     }
     
-    function updateJackpotRewards(uint roundId) internal returns (uint dustLeft)
+    function finalizeRewardForRound(uint roundId) internal returns (uint dustLeft)
     {
         var (jackpotSum, oddSum, isOddWin) = getJackpotResults(roundId);
 
         dustLeft = jackpotSum;
+
         uint i = 0;
-        
         for (i=0; i<rounds[roundId].betIds.length; i++) {
-            dustLeft = updateRewardForBet(rounds[roundId].betIds[i], isOddWin, jackpotSum, oddSum, jackpotSum - oddSum, dustLeft);
+            dustLeft = finalizeRewardForBet(rounds[roundId].betIds[i], isOddWin, jackpotSum, oddSum, jackpotSum - oddSum, dustLeft);
         }
     }
-
-    function calculateJackpotInFinalize(uint roundId) internal returns (bool)
-    {
-        uint finalizedBlock = getBlockNumber();
+    
+    /// @notice This method can be used by the controller to extract mistakenly
+    ///  sent tokens to this contract.
+    /// @param _token The address of the token contract that you want to recover
+    ///  set to 0 in case you want to extract ether.
+    function claimTokens(address _token) public auth {
+        if (_token == 0x0) {
+            owner.transfer(this.balance);
+            return;
+        }
         
-        bool betsRevealed = betRevealed(roundId);
-
-        if (betsRevealed)
-        {
-            uint dustLeft = updateJackpotRewards(roundId);
-
-            poolAmount = poolAmount.add(dustLeft);
-
-            
-            return true;
-        }
-        else if (!betsRevealed && finalizedBlock.sub(rounds[roundId].startRevealBlock) > rounds[roundId].maxRevealBlockCount)
-        {
-            // return funds to players who have already revealed
-            // but for those who didn't reveal, the funds go to pool
-            // revealing timeout
-            uint i = 0;
-            for (i=0; i<rounds[roundId].betIds.length; i++) {
-                if (bets[rounds[roundId].betIds[i]].isRevealed)
-                {
-                    balancesForWithdraw[bets[rounds[roundId].betIds[i]].player] = balancesForWithdraw[bets[rounds[roundId].betIds[i]].player].add(bets[rounds[roundId].betIds[i]].amount);
-                } else
-                {
-                    // go to pool
-                    poolAmount = poolAmount.add(bets[rounds[roundId].betIds[i]].amount);
-                }
-            }
-
-            return true;
-        } else{
-            return false;
-        }
-    }
-
-    /// @notice This function is overridden by the test Mocks.
-    function getBlockNumber() internal constant returns (uint256) {
-        return block.number;
+        ERC20 token = ERC20(_token);
+        
+        uint256 balance = token.balanceOf(this);
+        
+        token.transfer(owner, balance);
+        ClaimedTokens(_token, owner, balance);
     }
 
     event BetSubmission(uint indexed _betId);
     event RoundSubmission(uint indexed _roundId);
-
     event ClaimFromPool();
+    event ClaimedTokens(address indexed _token, address indexed _controller, uint256 _amount);
+    event RoundFinalized(uint indexed _roundId);
+    event RoundBetStarted(uint indexed _roundId, uint startBetBlock);
+    event RoundRevealStarted(uint indexed _roundId, uint startRevealBlock);
 }
