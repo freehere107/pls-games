@@ -121,6 +121,8 @@ contract BetGame is DSStop {
                 return;
             }  
         }
+
+        isIn = false;
     }
 
     function betWithRound(uint _roundId, bytes32 _secretHashForBet) public tokenPayable
@@ -134,7 +136,6 @@ contract BetGame is DSStop {
         {
             throw;
         }
-        
 
         uint betId = addBet(tokenMsg.fallbackFrom, _secretHashForBet, tokenMsg.fallbackValue);
 
