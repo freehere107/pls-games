@@ -1,7 +1,7 @@
 pragma solidity ^0.4.17;
 
 import "ds-test/test.sol";
-
+import "play-dapp/PLS.sol";
 import "./BetGame.sol";
 
 // A contract that can receive and transfer tokens.

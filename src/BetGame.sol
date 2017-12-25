@@ -1,7 +1,7 @@
 pragma solidity ^0.4.13;
 
 import "ds-stop/stop.sol";
-import "play-dapp/PLS.sol";
+import "erc20/erc20.sol";
 import "./SafeMath.sol";
 
 contract BetGame is DSStop {
@@ -41,7 +41,7 @@ contract BetGame is DSStop {
 
     uint public poolAmount;
     uint256 public initializeTime;
-    PLS public pls;
+    ERC20 public pls;
 
     struct TokenMessage {
         bool init;
@@ -69,7 +69,16 @@ contract BetGame is DSStop {
         initializeTime = now;
         roundCount = 1;
 
-        pls = PLS(_pls);
+        pls = ERC20(_pls);
+    }
+
+    function onTokenTransfer(address _from, address _to, uint _amount) public returns (bool) {
+        if (_to == address(this))
+        {
+            if (stopped) return false;
+        }
+
+        return true;
     }
 
     function receiveToken(address from, uint256 _amount, address _token) public
@@ -80,6 +89,7 @@ contract BetGame is DSStop {
     function tokenFallback(address _from, uint256 _value, bytes _data) public
     {
         require(msg.sender == address(pls));
+        require(!stopped);
         tokenMsg.init = true;
         tokenMsg.fallbackFrom = _from;
         tokenMsg.fallbackValue = _value;
@@ -120,11 +130,12 @@ contract BetGame is DSStop {
         if (rounds[_roundId].betIds.length == rounds[_roundId].betCount)
         {
             rounds[_roundId].startRevealBlock = getBlockNumber();
-            
+
             RoundRevealStarted(_roundId, rounds[_roundId].startRevealBlock);
         }
     }
 
+    // anyone can try to reveal the bet
     function revealBet(uint betId, uint _nonce, bool _guessOdd, bytes32 _secret) public returns (bool)
     {
         Bet bet = bets[betId];
