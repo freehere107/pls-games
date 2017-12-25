@@ -112,19 +112,6 @@ contract BetGame is DSStop {
         roundId = addRound(_betCount, _maxBetBlockCount, _maxRevealBlockCount, betId);
     }
 
-    function isPlayerInRound(uint _roundId, address _player) public constant returns (bool isIn)
-    {
-        for (uint i=0; i < rounds[_roundId].betIds.length; i++) {
-            if (bets[rounds[_roundId].betIds[i]].player == _player)
-            {
-                isIn = true;
-                return;
-            }  
-        }
-
-        isIn = false;
-    }
-
     function betWithRound(uint _roundId, bytes32 _secretHashForBet) public tokenPayable
     {
         require(tokenMsg.fallbackValue > 0);
@@ -223,6 +210,19 @@ contract BetGame is DSStop {
     {
         secretHash = keccak256(_nonce, _guessOdd, _secret);
     }
+
+    function isPlayerInRound(uint _roundId, address _player) public constant returns (bool isIn)
+    {
+        for (uint i=0; i < rounds[_roundId].betIds.length; i++) {
+            if (bets[rounds[_roundId].betIds[i]].player == _player)
+            {
+                isIn = true;
+                return;
+            }
+        }
+
+        isIn = false;
+    }
     
     function getBetIds(uint roundIndex) public constant returns (uint[] _betIds)
     {
@@ -240,53 +240,6 @@ contract BetGame is DSStop {
         return rounds[roundIndex].betIds.length;
     }
 
-    /*
-     * Internal functions
-     */
-    /// @dev Adds a new bet to the bet mapping, if bet does not exist yet.
-    /// @param _player The player of the bet.
-    /// @param _secretHash The hash of the nonce, guessOdd, and secret for the bet, hash ＝ keccak256(_num, _guessOdd, _secret) 
-    /// @param _amount The amount of the bet.
-    /// @return Returns bet ID.
-    function addBet(address _player, bytes32 _secretHash, uint256 _amount)
-        internal
-        notNull(_player)
-        returns (uint betId)
-    {
-        betId = betCount;
-        bets[betId] = Bet({
-            player: _player,
-            secretHash: _secretHash,
-            amount: _amount,
-            roundId: 0,
-            isRevealed: false,
-            nonce:0,
-            guessOdd:false,
-            secret: ""
-        });
-        betCount += 1;
-        BetSubmission(betId);
-    }
-
-    function addRound(uint _betCount, uint _maxBetBlockCount, uint _maxRevealBlockCount, uint _betId)
-        internal
-        returns (uint roundId)
-    {
-        roundId = roundCount;
-        rounds[roundId].betCount = _betCount;
-        rounds[roundId].maxBetBlockCount = _maxBetBlockCount;
-        rounds[roundId].maxRevealBlockCount = _maxRevealBlockCount;
-        rounds[roundId].betIds.push(_betId);
-        rounds[roundId].startBetBlock = getBlockNumber();
-        rounds[roundId].startRevealBlock = 0;
-        rounds[roundId].finalizedBlock = 0;
-
-        bets[_betId].roundId = roundId;
-
-        roundCount += 1;
-        RoundSubmission(roundId);
-    }
-    
     function betRevealed(uint roundId) constant public returns(bool)
     {
         bool betsRevealed = true;
@@ -334,6 +287,58 @@ contract BetGame is DSStop {
         }
         
         return (jackpotSum, oddSum, isOddWin);
+    }
+
+    /// @notice This function is overridden by the test Mocks.
+    function getBlockNumber() internal constant returns (uint256) {
+        return block.number;
+    }
+
+    /*
+     * Internal functions
+     */
+    /// @dev Adds a new bet to the bet mapping, if bet does not exist yet.
+    /// @param _player The player of the bet.
+    /// @param _secretHash The hash of the nonce, guessOdd, and secret for the bet, hash ＝ keccak256(_num, _guessOdd, _secret) 
+    /// @param _amount The amount of the bet.
+    /// @return Returns bet ID.
+    function addBet(address _player, bytes32 _secretHash, uint256 _amount)
+        internal
+        notNull(_player)
+        returns (uint betId)
+    {
+        betId = betCount;
+        bets[betId] = Bet({
+            player: _player,
+            secretHash: _secretHash,
+            amount: _amount,
+            roundId: 0,
+            isRevealed: false,
+            nonce:0,
+            guessOdd:false,
+            secret: ""
+        });
+        betCount += 1;
+        BetSubmission(betId);
+    }
+
+    function addRound(uint _betCount, uint _maxBetBlockCount, uint _maxRevealBlockCount, uint _betId)
+        internal
+        returns (uint roundId)
+    {
+        roundId = roundCount;
+        rounds[roundId].betCount = _betCount;
+        rounds[roundId].maxBetBlockCount = _maxBetBlockCount;
+        rounds[roundId].maxRevealBlockCount = _maxRevealBlockCount;
+        rounds[roundId].betIds.push(_betId);
+        rounds[roundId].startBetBlock = getBlockNumber();
+        rounds[roundId].startRevealBlock = 0;
+        rounds[roundId].finalizedBlock = 0;
+
+        bets[_betId].roundId = roundId;
+
+        roundCount += 1;
+        RoundSubmission(roundId);
     }
     
     function updateRewardForBet(uint betId, bool isOddWin, uint jackpotSum, uint oddSum, uint evenSum, uint dustLeft) internal returns(uint)
@@ -403,14 +408,27 @@ contract BetGame is DSStop {
             return false;
         }
     }
-
-    /// @notice This function is overridden by the test Mocks.
-    function getBlockNumber() internal constant returns (uint256) {
-        return block.number;
+    
+    /// @notice This method can be used by the controller to extract mistakenly
+    ///  sent tokens to this contract.
+    /// @param _token The address of the token contract that you want to recover
+    ///  set to 0 in case you want to extract ether.
+    function claimTokens(address _token) public auth {
+        if (_token == 0x0) {
+            owner.transfer(this.balance);
+            return;
+        }
+        
+        ERC20 token = ERC20(_token);
+        
+        uint256 balance = token.balanceOf(this);
+        
+        token.transfer(owner, balance);
+        ClaimedTokens(_token, owner, balance);
     }
 
     event BetSubmission(uint indexed _betId);
     event RoundSubmission(uint indexed _roundId);
-
     event ClaimFromPool();
+    event ClaimedTokens(address indexed _token, address indexed _controller, uint256 _amount);
 }
