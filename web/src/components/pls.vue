@@ -60,9 +60,11 @@
           <Col span="24">
           <Card>
             <p slot="title">Current Round Information</p>
+            <p v-if="roundsInfo[currentRound]">start Bet Block {{ roundsInfo[currentRound]['startBetBlock'] }}</p>
+            <p>current Block {{ current_block }}</p>
             <Button type="success" size="small" class="new-bet" @click="new_bet_modal = true">Bet With New Round</Button>
             <Button type="info" size="small" class="new-bet" @click="reveale" v-if="!revealed && currentBet">Reveal Bet</Button>
-            <Button type="info" size="small" class="new-bet" @click="bet_modal = true" v-if="!revealed && currentBet===null">Bet this Round</Button>
+            <Button type="info" size="small" class="new-bet" @click="bet_modal = true" v-if="!revealed && currentBet===null && currentRound>1">Bet this Round</Button>
             <Button type="primary" size="small" v-if="revealed && currentBet" @click="settle()">Finalize THE BET</Button>
           </Card>
           </Col>
@@ -142,7 +144,7 @@
             <Button type="error" size="large" :loading="modal_loading" @click="betWithRound('even')">EVEN</Button>
           </div>
         </Modal>
-        <Modal v-model="desc_modal" title="Rules of Bet Game" width="900">
+        <Modal v-model="desc_modal" title="Rules of Bet Game" width="900" cancel-text="">
           <p>Bet Game is separated to a list of rounds, for every round, every player will join in by putting an bet here, the contract will automatically calculate a game result according to the secret of these bets, which is an odd or an even, according the sum of the secrets of the bets. Every player will get reward according to their guess settings in the origin bet, they will win and get reward if they guess the right answer, otherwise they will lose.</p>
           <br/>
           <p>Every one can trigger the round finalization action once all bets are full filled and all bets are revealed. But if someone forget to reveal the bet in specific time(there will one round parameter controlling this: _maxRevealBlockCount), the round will fail to reveal, the funds of the players who revealed will be returned back, but the funds of players who didn't reveal in time will be punished and be confiscated to the finalizer and contract owner.</p>
@@ -170,8 +172,9 @@
             <li>6. The round ends.</li>
             <br/>
           </ul>
-          <p>Tip: The game needs 1000 PLS for each game, you can go <a href="https://etherdelta.com/#0x221789a8263eb084a7f575b195190cc3373b0c7a-ETH"
-                                                                       target="_blank">Etherdelta</a> to buy PLS in Kovan test network</p>
+          <p>Tip: The game needs 1000 PLS for each game, you can go
+            <a href="https://etherdelta.com/#0x221789a8263eb084a7f575b195190cc3373b0c7a-ETH"
+               target="_blank">Etherdelta</a> to buy PLS in Kovan test network</p>
         </Modal>
       </div>
     </div>
@@ -184,13 +187,14 @@
     data () {
       return {
         theme1: 'dark',
-        contractAddr: '0x1DdAB50313656D3A7788210bF7c49C448ADa8C58',
+        contractAddr: '0x95141f1e16554a14e43d035fd0bd68d15a64d43e',
         tokenAddr: '0x221789a8263eb084a7f575b195190cc3373b0c7a',
         tokenOwner: '0x00a1537d251a6a4c4effAb76948899061FeA47b9',
         modal_loading: false,
         new_bet_modal: false,
         bet_modal: false,
-        desc_modal: false,
+        desc_modal: true,
+        current_block: 0,
         one_bet_modal: true,
         spinShow: false,
         revealed: false,
@@ -221,9 +225,6 @@
       },
     },
     filters: {
-      revealedStatus: function (status) {
-        return status === true ? 'over' : 'going'
-      },
       status: function (data) {
         if (data) {
           return data.finalizedBlock > 0 ? 'Over' : data.startRevealBlock > 0 ? 'Going' : 'Reveal'
@@ -237,6 +238,7 @@
         this.spinShow = true
         this.axios.get('static/betGame.json').then(r => {
           window.pls = new Pls('http://localhost:8545', this.contractAddr, r.data.betGame, this.tokenAddr, r.data.pls)
+          this.getBlock()
           this.refreshAccounts()
         }).catch(err => {
           console.error(`error is ${err}`)
@@ -386,6 +388,7 @@
           console.log('startRound', result)
           pls.doBet(this.account, 1000, '0x' + result, (err, result) => {
             if (err) {
+              this.spinShow = false
               console.error(err)
             }
             localStorage.setItem(this.account + '-' + `${this.roundCount}`, JSON.stringify({'guess': guessResult, 'betId': this.betCount}))
@@ -406,6 +409,7 @@
           }
           pls.doBet(this.account, 1000, '0x' + result, (err, result) => {
             if (err) {
+              this.spinShow = false
               console.error(err)
             } else {
               localStorage.setItem(this.account + '-' + `${this.currentRound}`, JSON.stringify({'guess': guessResult, 'betId': this.betCount}))
@@ -505,11 +509,22 @@
             console.log('bet info ', bet)
           }
         })
+      },
+      getBlock(){
+        pls.getCurrentBlock((err, count) => {
+          if (err) {
+            console.error(err)
+          } else {
+            this.current_block = count
+            console.log('get current Block', count)
+          }
+        })
       }
     },
     created()
     {
       this.init()
+      setTimeout("console.log('start')", 3000)
     }
   }
 </script>

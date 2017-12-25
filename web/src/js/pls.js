@@ -86,7 +86,7 @@ class Pls {
       return this.token.methods['transfer(address,uint256,bytes)'](this.contract.options.address, deposit, hexStrToBytes).send({
         from: account,
         gas: 600000,
-        gasPrice: 40
+        gasPrice: '20000000000'
       })
         .on('transactionHash', function (hash) {
         })
@@ -248,6 +248,9 @@ class Pls {
     })
   }
 
+  getCurrentBlock(callback) {
+    return this.web3.eth.getBlockNumber(callback)
+  }
 
 }
 export {
