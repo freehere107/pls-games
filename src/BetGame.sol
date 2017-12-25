@@ -115,7 +115,7 @@ contract BetGame is DSStop {
     function isPlayerInRound(uint _roundId, address _player) public constant returns (bool isIn)
     {
         for (uint i=0; i < rounds[_roundId].betIds.length; i++) {
-            if (bets[rounds[_roundId].betIds[i]].player == tokenMsg.fallbackFrom)
+            if (bets[rounds[_roundId].betIds[i]].player == _player)
             {
                 isIn = true;
                 return;
@@ -129,18 +129,11 @@ contract BetGame is DSStop {
     {
         require(tokenMsg.fallbackValue > 0);
         require(rounds[_roundId].finalizedBlock == 0);
-        
         require(rounds[_roundId].betIds.length < rounds[_roundId].betCount);
-
-        if (isPlayerInRound(_roundId, _player))
-        {
-            throw;
-        }
+        require(!isPlayerInRound(_roundId, tokenMsg.fallbackFrom));
 
         uint betId = addBet(tokenMsg.fallbackFrom, _secretHashForBet, tokenMsg.fallbackValue);
-
         rounds[_roundId].betIds.push(betId);
-
         bets[betId].roundId = _roundId;
 
         if (rounds[_roundId].betIds.length == rounds[_roundId].betCount)
