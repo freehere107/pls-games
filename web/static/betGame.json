@@ -228,6 +228,33 @@
       "type": "function"
     },
     {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_from",
+          "type": "address"
+        },
+        {
+          "name": "_to",
+          "type": "address"
+        },
+        {
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "onTokenTransfer",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "constant": true,
       "inputs": [],
       "name": "tokenMsg",
@@ -292,19 +319,19 @@
           "type": "uint256"
         },
         {
-          "name": "maxBetBlockCount",
-          "type": "uint256"
-        },
-        {
-          "name": "maxRevealBlockCount",
-          "type": "uint256"
-        },
-        {
           "name": "startBetBlock",
           "type": "uint256"
         },
         {
           "name": "startRevealBlock",
+          "type": "uint256"
+        },
+        {
+          "name": "maxBetBlockCount",
+          "type": "uint256"
+        },
+        {
+          "name": "maxRevealBlockCount",
           "type": "uint256"
         },
         {
@@ -562,6 +589,43 @@
       "type": "function"
     },
     {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_token",
+          "type": "address"
+        }
+      ],
+      "name": "claimTokens",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "_roundId",
+          "type": "uint256"
+        },
+        {
+          "name": "_player",
+          "type": "address"
+        }
+      ],
+      "name": "isPlayerInRound",
+      "outputs": [
+        {
+          "name": "isIn",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "constant": true,
       "inputs": [
         {
@@ -619,6 +683,74 @@
       "anonymous": false,
       "inputs": [],
       "name": "ClaimFromPool",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "_token",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "name": "_controller",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "ClaimedTokens",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "_roundId",
+          "type": "uint256"
+        }
+      ],
+      "name": "RoundFinalized",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "_roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "startBetBlock",
+          "type": "uint256"
+        }
+      ],
+      "name": "RoundBetStarted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "_roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "startRevealBlock",
+          "type": "uint256"
+        }
+      ],
+      "name": "RoundRevealStarted",
       "type": "event"
     },
     {

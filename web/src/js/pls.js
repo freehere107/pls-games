@@ -31,10 +31,9 @@ class Pls {
     return str.padStart(zPadLength, '0')
   }
 
-
-  SecretHash(account, guess, func, betId, callback) {
-    console.log('utf8ToHex', this.nonce, guess, this.web3.utils.utf8ToHex('ethereum'))
-    return this.contract.methods.calculateSecretHash(this.nonce, guess, this.secret).call({from: account}, (err, info) => {
+  SecretHash(account, guess, func, betId, secret, nonce, callback) {
+    console.log('utf8ToHex', nonce, guess, this.web3.utils.utf8ToHex(secret))
+    return this.contract.methods.calculateSecretHash(nonce, guess, this.web3.utils.utf8ToHex(secret)).call({from: account}, (err, info) => {
       if (err) {
         console.error(err)
         return callback(err)
@@ -86,7 +85,7 @@ class Pls {
       return this.token.methods['transfer(address,uint256,bytes)'](this.contract.options.address, deposit, hexStrToBytes).send({
         from: account,
         gas: 600000,
-        gasPrice: '20000000000'
+        // gasPrice: '20000000000'
       })
         .on('transactionHash', function (hash) {
         })
@@ -196,8 +195,8 @@ class Pls {
   }
 
 
-  reviewerBet(account, betId, guess, callback) {
-    return this.contract.methods.revealBet(betId, this.nonce, guess, this.secret).send({from: account}, (err, info) => {
+  reviewerBet(account, betId, guess, nonce, secret, callback) {
+    return this.contract.methods.revealBet(betId, nonce, guess, this.web3.utils.utf8ToHex(secret)).send({from: account}, (err, info) => {
       if (err) {
         console.error(err)
         return callback(err)
@@ -243,7 +242,6 @@ class Pls {
         console.error(err)
         return callback(err)
       }
-      console.log(info)
       return callback(err, info)
     })
   }
@@ -251,6 +249,17 @@ class Pls {
   getCurrentBlock(callback) {
     return this.web3.eth.getBlockNumber(callback)
   }
+
+  getWithdrawBalance(account, callback) {
+    return this.contract.methods.balancesForWithdraw(account).call({}, (err, info) => {
+      if (err) {
+        console.error(err)
+        return callback(err)
+      }
+      return callback(err, info)
+    })
+  }
+
 
 }
 export {

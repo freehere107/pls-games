@@ -46,6 +46,9 @@
             <a slot="title" href="javascript:void(0)">User</a>
             <p>Account : {{ account }}</p>
             <p>Balance : {{ balance }}</p>
+            <p v-if="balance_value < 1000">Tip: The game needs 1000 PLS for each game, you can go
+              <a href="https://etherdelta.com/#0xe43ac1714f7394173b15e7cff31a63d523ce4fb9-ETH"
+                 target="_blank">Etherdelta</a> to buy PLS</p>
           </Card>
           </Col>
           <Col span="12">
@@ -61,18 +64,23 @@
           <Card>
             <p slot="title">Current Round Information</p>
             <p v-if="roundsInfo[currentRound]">start Bet Block {{ roundsInfo[currentRound]['startBetBlock'] }}</p>
+            <p
+              v-if="roundsInfo[currentRound] && roundsInfo[currentRound]['startRevealBlock']>0">start Reveal Block {{ roundsInfo[currentRound]['startRevealBlock'] }}</p>
             <p>current Block {{ current_block }}</p>
+            <p>withdraw balance {{ withdraw_balance }}</p>
             <Button type="success" size="small" class="new-bet" @click="new_bet_modal = true">Bet With New Round</Button>
             <Button type="info" size="small" class="new-bet" @click="reveale" v-if="!revealed && currentBet">Reveal Bet</Button>
-            <Button type="info" size="small" class="new-bet" @click="bet_modal = true" v-if="!revealed && currentBet===null && currentRound>1">Bet this Round</Button>
+            <Button type="info" size="small" class="new-bet" @click="betWithRound(true)"
+                    v-if="!revealed && currentBet===null && currentRound>1">Bet this Round
+            </Button>
             <Button type="primary" size="small" v-if="revealed && currentBet" @click="settle()">Finalize THE BET</Button>
           </Card>
           </Col>
           <Col span="24">
           <Card>
             <p slot="title">Rounds Choose</p>
-            <i-circle :percent="100" v-for="(value,key) in roundCount <= 1 ? 0 : roundCount - 1">
-              <h4> Round {{ value }}</h4>
+            <i-circle v-for="(value,key) in roundCount <= 1 ? 0 : roundCount - 1" :percent="currentRound==value?100:0">
+              <h4 v-on:click="changeRound(value)"> Round {{ value }}</h4>
               <div v-if="roundsInfo[value]">
                 <a v-for="(item,index) in roundsInfo[value]['bet_ids']" v-on:click="showBet(item)">
                   <i class="ivu-icon ivu-icon-person"></i>
@@ -80,7 +88,7 @@
                 </a>
               </div>
               <br>
-              <span class="demo-Circle-inner" style="font-size:12px">status {{ roundsInfo|status }} </span>
+              <span class="demo-Circle-inner" style="font-size:12px"> {{ roundsInfo[value]|status(roundsInfo[value],current_block) }} </span>
             </i-circle>
             <br>
             <br>
@@ -187,9 +195,9 @@
     data () {
       return {
         theme1: 'dark',
-        contractAddr: '0x95141f1e16554a14e43d035fd0bd68d15a64d43e',
-        tokenAddr: '0x221789a8263eb084a7f575b195190cc3373b0c7a',
-        tokenOwner: '0x00a1537d251a6a4c4effAb76948899061FeA47b9',
+        contractAddr: '0x32ceb540334300bcd53836a25a4bd64d607babd8',
+        tokenAddr: '0xe43ac1714f7394173b15e7cff31a63d523ce4fb9',
+        tokenOwner: '0x15799d3098715234657b90261fc596914e5003aa',
         modal_loading: false,
         new_bet_modal: false,
         bet_modal: false,
@@ -200,12 +208,14 @@
         revealed: false,
         account: '',
         balance: 0,
+        balance_value: 0,
         roundCount: 0,
         betCount: 0,
         withdraw: false,
         currentRound: 1,
         currentBet: null,
         finalizedBlock: 0,
+        withdraw_balance: 0,
         currentPage: 0,
         roundsInfo: {},
         formInline: {
@@ -225,12 +235,23 @@
       },
     },
     filters: {
-      status: function (data) {
+      status: function (data, current_block) {
         if (data) {
-          return data.finalizedBlock > 0 ? 'Over' : data.startRevealBlock > 0 ? 'Going' : 'Reveal'
+          if (data.finalizedBlock > 0) {
+            return 'Over'
+          } else if (data.startRevealBlock > 0 && data.startRevealBlock + 100 <= current_block) {
+            return 'Reveal'
+          } else if (data.startRevealBlock > 0 && data.startRevealBlock + 100 > current_block) {
+            return 'Over'
+          } else if (data.startBetBlock + 100 < current_block) {
+            return 'Over'
+          } else {
+            return 'Going'
+          }
         } else {
-          return 'going'
+          return 'Going'
         }
+
       }
     },
     methods: {
@@ -262,8 +283,10 @@
             this.account = accounts[0]
             let getToken = this.getToken(accounts[0])
             let getRounds = this.getRounds(accounts[0])
+            let getBet = this.getBet(accounts[0])
+            let getRevealed = this.getRevealed(accounts[0])
             let that = this
-            Promise.all([getRounds, getToken]).then(result => {
+            Promise.all([getRounds, getToken, getBet, getRevealed]).then(result => {
               that.spinShow = false
               that.getRoundList()
             }, function (error) {
@@ -280,6 +303,7 @@
               console.error(err)
             }
             that.balance = `${token.balance || 0} ${token.symbol}`
+            that.balance_value = `${token.balance || 0}`
             resolve(1)
           })
         })
@@ -326,12 +350,12 @@
                 console.log('getRevealed', result, that.currentRound)
                 pls.getRoundInfo(that.currentRound, (err, result) => {
                   that.finalizedBlock = result.finalizedBlock
-                  if (result.finalizedBlock > 0) {
-                    pls.getWithdraw(that.account, (err, result) => {
-                      console.log('getWithdraw', result)
-                      that.withdraw = result
-                    });
-                  }
+//                  if (result.finalizedBlock > 0) {
+//                    pls.getWithdraw(that.account, (err, result) => {
+//                      console.log('getWithdraw', result)
+//                      that.withdraw = result
+//                    });
+//                  }
                   resolve(true)
                 })
               }
@@ -381,7 +405,13 @@
         this.new_bet_modal = false
         this.spinShow = true
         let guessResult = guess == 'odd'
-        pls.SecretHash(this.account, guessResult, 'startRoundWithFirstBet', this.currentRound, (err, result) => {
+        let secret = Math.floor(Math.random() * 10000000)
+        let nonce = 1
+        if (localStorage.getItem('nonce')) {
+          nonce = isNaN(Math.floor(localStorage.getItem('nonce'))) ? 1 : Math.floor(localStorage.getItem('nonce')) + 1
+        }
+        localStorage.setItem('nonce', nonce)
+        pls.SecretHash(this.account, guessResult, 'startRoundWithFirstBet', this.currentRound, secret, nonce, (err, result) => {
           if (err) {
             console.error(err)
           }
@@ -391,7 +421,10 @@
               this.spinShow = false
               console.error(err)
             }
-            localStorage.setItem(this.account + '-' + `${this.roundCount}`, JSON.stringify({'guess': guessResult, 'betId': this.betCount}))
+            localStorage.setItem(this.account + '-' + `${this.roundCount}`,
+              JSON.stringify({
+                'guess': guessResult, 'betId': this.betCount, 'secret': secret, 'nonce': nonce
+              }))
             this.refreshAccounts()
             console.log('bet success')
           })
@@ -402,20 +435,32 @@
         let guessResult = guess == 'odd'
         this.spinShow = true
         this.bet_modal = false
+        let secret = Math.floor(Math.random() * 10000000)
+        let nonce = 1
+        if (localStorage.getItem('nonce')) {
+          nonce = isNaN(Math.floor(localStorage.getItem('nonce'))) ? 1 : Math.floor(localStorage.getItem('nonce')) + 1
+        }
+        localStorage.setItem('nonce', nonce)
         console.log(this.account, guessResult, 'betWithRound', this.currentRound)
-        pls.SecretHash(this.account, guessResult, 'betWithRound', this.currentRound, (err, result) => {
-          if (err) {
-            console.error(err)
-          }
-          pls.doBet(this.account, 1000, '0x' + result, (err, result) => {
+        pls.getBetInfo(this.roundsInfo[this.currentRound]['bet_ids'][0], (err, bet) => {
+          guessResult = bet.guessOdd === false
+          pls.SecretHash(this.account, guessResult, 'betWithRound', this.currentRound, secret, nonce, (err, result) => {
             if (err) {
-              this.spinShow = false
               console.error(err)
-            } else {
-              localStorage.setItem(this.account + '-' + `${this.currentRound}`, JSON.stringify({'guess': guessResult, 'betId': this.betCount}))
-              this.refreshAccounts()
-              console.log('bet success')
             }
+            pls.doBet(this.account, 1000, '0x' + result, (err, result) => {
+              if (err) {
+                this.spinShow = false
+                console.error(err)
+              } else {
+                localStorage.setItem(this.account + '-' + `${this.currentRound}`,
+                  JSON.stringify({
+                    'guess': guessResult, 'betId': this.betCount, 'secret': secret, 'nonce': nonce
+                  }))
+                this.refreshAccounts()
+                console.log('bet success')
+              }
+            })
           })
         })
       },
@@ -425,14 +470,16 @@
           console.error('review error')
           return
         }
-        pls.reviewerBet(this.account, this.currentBet.betId, this.currentBet.guess, (err, result) => {
-          if (err) {
-            this.spinShow = false
-            console.error(err)
-          } else {
-            this.refreshAccounts()
-          }
-        })
+        console.log('this.currentBet', this.currentBet)
+        pls.reviewerBet(this.account, this.currentBet.betId, this.currentBet.guess, this.currentBet.nonce,
+          this.currentBet.secret, (err, result) => {
+            if (err) {
+              this.spinShow = false
+              console.error(err)
+            } else {
+              this.refreshAccounts()
+            }
+          })
       },
       //settle one bet
       settle: function () {
@@ -497,7 +544,6 @@
         })
       },
       showBet: function (betIndex) {
-        console.log('betIndex', betIndex)
         pls.getBetInfo(betIndex, (err, bet) => {
           if (err) {
             console.error(err)
@@ -516,7 +562,15 @@
             console.error(err)
           } else {
             this.current_block = count
-            console.log('get current Block', count)
+          }
+        })
+      },
+      getWithdraw(){
+        pls.getWithdrawBalance((err, count) => {
+          if (err) {
+            console.error(err)
+          } else {
+            this.withdraw_balance = count
           }
         })
       }
