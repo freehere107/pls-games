@@ -31,24 +31,30 @@ class Pls {
     return str.padStart(zPadLength, '0')
   }
 
-  SecretHash(account, guess, func, betId, secret, nonce, callback) {
-    console.log('utf8ToHex', nonce, guess, this.web3.utils.utf8ToHex(secret))
+  SecretHash(account, guess, secret, nonce, callback) {
+    console.log('utf8ToHex', nonce, guess, this.web3.utils.utf8ToHex('secret'))
     return this.contract.methods.calculateSecretHash(nonce, guess, this.web3.utils.utf8ToHex(secret)).call({from: account}, (err, info) => {
       if (err) {
         console.error(err)
         return callback(err)
       }
-      let calResult = ''
-      if (func === 'betWithRound') {
-        calResult = abi.methodID('betWithRound', ['uint256', 'bytes32']).toString('hex') +
-          abi.rawEncode(['uint256', 'bytes32'], [`${betId}`, info]).toString('hex')
-      } else {
-        calResult = abi.methodID('startRoundWithFirstBet', ['uint256', 'uint256', 'uint256', 'bytes32']).toString('hex') +
-          abi.rawEncode(['uint256', 'uint256', 'uint256', 'bytes32'], ["2", "100", "100", info]).toString('hex')
-      }
-      return callback(null, calResult)
+      return callback(null, info)
+
     })
   }
+
+  abiHash(round_id, func, hash, callback) {
+    let calResult = ''
+    if (func === 'betWithRound') {
+      calResult = abi.methodID('betWithRound', ['uint256', 'bytes32']).toString('hex') +
+        abi.rawEncode(['uint256', 'bytes32'], [`${round_id}`, hash]).toString('hex')
+    } else {
+      calResult = abi.methodID('startRoundWithFirstBet', ['uint256', 'uint256', 'uint256', 'bytes32']).toString('hex') +
+        abi.rawEncode(['uint256', 'uint256', 'uint256', 'bytes32'], ["2", "100", "100", hash]).toString('hex')
+    }
+    return callback(null, calResult)
+  }
+
 
   num2bal(value) {
     return Math.floor(value * Math.pow(10, this.decimals))
@@ -158,7 +164,7 @@ class Pls {
         console.error(err)
         return callback(err)
       }
-      return this.withdrawBet(account, callback)
+      return callback(err, info)
     })
   }
 
@@ -256,7 +262,7 @@ class Pls {
         console.error(err)
         return callback(err)
       }
-      return callback(err, info)
+      return callback(err, this.bal2num(info))
     })
   }
 
