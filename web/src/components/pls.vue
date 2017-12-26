@@ -206,9 +206,9 @@
     data () {
       return {
         theme1: 'dark',
-        contractAddr: '0x7856fbbc15ccb07779dd2db1a37bed9dea1bd5c6',
-        tokenAddr: '0x9b678afd69a76603e378f07b1346d0a377745a70',
-        tokenOwner: '0x00a1537d251a6a4c4effAb76948899061FeA47b9',
+        contractAddr: '0x32ceb540334300bcd53836a25a4bd64d607babd8',
+        tokenAddr: '0xe43ac1714f7394173b15e7cff31a63d523ce4fb9',
+        tokenOwner: '0x15799d3098715234657b90261fc596914e5003aa',
         modal_loading: false,
         new_bet_modal: false,
         bet_modal: false,
